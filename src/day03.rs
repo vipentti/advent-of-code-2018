@@ -31,7 +31,7 @@ impl error::Error for ClaimError {
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
-type Grid = Vec<Vec<i32>>;
+type Grid<T> = Vec<Vec<T>>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Claim {
@@ -65,14 +65,17 @@ fn main() -> Result<()> {
     file.read_to_string(&mut s)?;
 
     part1(&s)?;
+    part2(&s)?;
 
     Ok(())
 }
 
-fn part1(s: &str) -> Result<()> {
+fn part1(s: &str) -> Result<usize> {
     let regex = regex::Regex::new(r"#(\d+)\s+@\s+(\d+),(\d+):\s+(\d+)x(\d+)")?;
 
     let claims: Result<Vec<Claim>> = s.lines()
+        .map(|s| s.trim())
+        .filter(|s| s.len() > 0)
         .map(|s| parse_claim(s, &regex))
         .collect()
         ;
@@ -91,9 +94,50 @@ fn part1(s: &str) -> Result<()> {
 
     eprintln!("Size {}x{}", width, height);
 
-    for c in &claims[..10] {
-        eprintln!("c: {:?}", c);
+    let mut grid = vec![vec![0_i32; width as usize]; height as usize];
+
+    for claim in claims.iter() {
+        mark(claim, &mut grid);
     }
+
+    let result =
+        grid.iter()
+            .map(|row| {
+                row.iter()
+                    .filter(|v| **v >= 2)
+                    .count()
+            })
+            .sum()
+            ;
+
+    eprintln!("total square inches {}", result);
+
+    Ok(result)
+}
+
+fn part2(s: &str) -> Result<i32> {
+    let regex = regex::Regex::new(r"#(\d+)\s+@\s+(\d+),(\d+):\s+(\d+)x(\d+)")?;
+
+    let claims: Result<Vec<Claim>> = s.lines()
+        .map(|s| s.trim())
+        .filter(|s| s.len() > 0)
+        .map(|s| parse_claim(s, &regex))
+        .collect()
+        ;
+
+    let claims = claims?;
+
+    let width = claims.iter().map(|c| c.rect.right())
+        .max()
+        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid size".to_owned()).into())?
+        ;
+
+    let height = claims.iter().map(|c| c.rect.bottom())
+        .max()
+        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid size".to_owned()).into())?
+        ;
+
+    eprintln!("Size {}x{}", width, height);
 
     let mut grid = vec![vec![0_i32; width as usize]; height as usize];
 
@@ -101,6 +145,18 @@ fn part1(s: &str) -> Result<()> {
         mark(claim, &mut grid);
     }
 
+    for claim in claims.iter() {
+        if is_only_claimer(claim, &grid) {
+            eprintln!("Claim: {:?}", claim);
+            return Ok(claim.id);
+        }
+    }
+
+    Ok(0)
+}
+
+#[allow(dead_code)]
+fn display_grid(grid: &Grid<i32>) -> Result<()> {
     for row in grid.iter() {
         let mut s = String::new();
         for col in row.iter() {
@@ -117,29 +173,28 @@ fn part1(s: &str) -> Result<()> {
         }
         eprintln!("{}", s);
     }
-
-
-    let results = grid.iter_mut()
-        .map(|mut row| {
-            let filtered = row.iter_mut()
-                .filter(|v| **v < 2)
-                .collect();
-            filtered
-        });
-
-
     Ok(())
 }
 
-fn mark(claim: &Claim, grid: &mut Grid) {
-
+fn mark(claim: &Claim, grid: &mut Grid<i32>) {
     for y in claim.rect.top..claim.rect.bottom() {
         let row = grid.get_mut(y as usize).expect(&format!("row: {}", y));
         for x in claim.rect.left..claim.rect.right() {
             row[x as usize] += 1;
         }
     }
+}
 
+fn is_only_claimer(claim: &Claim, grid: &Grid<i32>) -> bool {
+    for y in claim.rect.top..claim.rect.bottom() {
+        let row = grid.get(y as usize).expect(&format!("row: {}", y));
+        for x in claim.rect.left..claim.rect.right() {
+            if row[x as usize] > 1 {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 fn parse_claim(s: &str, re: &regex::Regex) -> StdResult<Claim, Box<std::error::Error>> {
@@ -184,4 +239,36 @@ fn parse_claim(s: &str, re: &regex::Regex) -> StdResult<Claim, Box<std::error::E
         id,
         rect,
     })
+}
+
+#[cfg(test)]
+mod part1_tests {
+    use super::*;
+
+    #[test]
+    fn test_example() {
+        let input = r#"
+#1 @ 1,3: 4x4
+#2 @ 3,1: 4x4
+#3 @ 5,5: 2x2
+        "#;
+
+        assert_eq!(4, part1(input).unwrap());
+    }
+}
+
+#[cfg(test)]
+mod part2_tests {
+    use super::*;
+
+    #[test]
+    fn test_example() {
+        let input = r#"
+#1 @ 1,3: 4x4
+#2 @ 3,1: 4x4
+#3 @ 5,5: 2x2
+        "#;
+
+        assert_eq!(3, part2(input).unwrap());
+    }
 }
