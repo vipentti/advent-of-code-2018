@@ -17,5 +17,11 @@ path = "src/day02.rs"
 name = "day03"
 path = "src/day03.rs"
 
+[[bin]]
+name = "day04"
+path = "src/day04.rs"
+
 [dependencies]
 regex = "1"
+lazy_static = "1.2.0"
+itertools = "0.7"
