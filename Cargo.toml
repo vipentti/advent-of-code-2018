@@ -1,13 +1,13 @@
 [package]
 name = "advent-of-code-2018"
 version = "0.1.0"
+description = "Solutions for Advent of Code 2018"
 authors = ["Ville Penttinen <villem.penttinen@gmail.com>"]
 edition = "2018"
 
 [[bin]]
 name = "day01"
 path = "src/day01.rs"
-
 
 [[bin]]
 name = "day02"
