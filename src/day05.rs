@@ -17,62 +17,28 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn flip_char(a: &char) -> char {
-    if a.is_ascii_lowercase() {
-        a.to_ascii_uppercase()
-    } else {
-        a.to_ascii_lowercase()
-    }
+fn reacts(a: char, b: char) -> bool {
+    a != b && a.to_ascii_lowercase() == b.to_ascii_lowercase()
 }
 
-fn react(s: &str) -> Vec<char> {
-    let bytes = s.trim().chars().collect::<Vec<_>>();
+fn react(s: &str, ignore: Option<char>) -> Vec<char> {
+    let mut output = Vec::new();
 
-    eprintln!("bytes: {:?}", bytes.len());
-
-    let mut last_length = usize::max_value();
-
-    let mut output = bytes;
-    let mut was_last = false;
-    loop {
-        let mut index = 0;
-        let mut result: Vec<char> = Vec::new();
-        while index < output.len() {
-            let a = &output[index];
-
-            if index < output.len() - 1 {
-                let b = &output[index + 1];
-
-                if flip_char(a) == *b {
-                    index += 1;
-                } else {
-                    result.push(*a);
-                }
-            } else {
-                result.push(*a);
-            }
-            index += 1;
-        }
-
-        if last_length == result.len() {
-            if was_last {
-                output = result;
-                break;
-            } else {
-                last_length = result.len();
-                output = result;
-                was_last = true;
-            }
+    for polymer in s.chars() {
+        if Some(polymer.to_ascii_lowercase()) == ignore  {
+            // skip
+        } else if reacts(polymer, output.last().cloned().unwrap_or_default()) {
+            output.pop();
         } else {
-            last_length = result.len();
-            output = result;
+            output.push(polymer);
         }
     }
+
     output
 }
 
 fn part1(s: &str) -> Result<usize> {
-    let output = react(s);
+    let output = react(s, None);
 
     eprintln!("part1 {}", output.len());
 
@@ -88,14 +54,7 @@ fn part2(s: &str) -> Result<usize> {
     let mut length = usize::max_value();
 
     for polymer in polymers.iter() {
-        let bytes = s
-            .chars()
-            .filter(|c| {
-                *c != *polymer && flip_char(c) != *polymer
-            })
-            .collect::<String>();
-
-        let chars = react(&bytes);
+        let chars = react(s, Some(*polymer));
 
         if chars.len() < length {
             length = chars.len();
