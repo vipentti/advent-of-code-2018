@@ -1,15 +1,9 @@
-use std::fs::File;
-use std::io::prelude::*;
 use std::collections::HashSet;
 
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+use aoc::Result;
 
 fn main() -> Result<()> {
-    let mut s = String::new();
-
-    let mut file = File::open("input/day01.txt")?;
-
-    file.read_to_string(&mut s)?;
+    let s = aoc::read_input()?;
 
     let numbers: std::result::Result<Vec<_>, _> = s.lines()
         .map(|v| v.parse::<i32>())

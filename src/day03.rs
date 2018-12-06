@@ -1,7 +1,5 @@
 extern crate regex;
 
-use std::fs::File;
-use std::io::prelude::*;
 use std::error;
 use std::fmt;
 
@@ -29,7 +27,7 @@ impl error::Error for ClaimError {
     }
 }
 
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+use aoc::Result;
 
 type Grid<T> = Vec<Vec<T>>;
 
@@ -58,11 +56,7 @@ impl Rect {
 }
 
 fn main() -> Result<()> {
-    let mut s = String::new();
-
-    let mut file = File::open("input/day03.txt")?;
-
-    file.read_to_string(&mut s)?;
+    let s = aoc::read_input()?;
 
     part1(&s)?;
     part2(&s)?;

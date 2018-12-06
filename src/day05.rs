@@ -1,18 +1,12 @@
-use std::fs::File;
-use std::io::prelude::*;
 use std::collections::HashSet;
 
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+use aoc::{read_input, Result};
 
 fn main() -> Result<()> {
-    let mut s = String::new();
+    let s = read_input()?;
 
-    let mut file = File::open("input/day05.txt")?;
-
-    file.read_to_string(&mut s)?;
-
-    part1(&s.trim())?;
-    part2(&s.trim())?;
+    part1(&s)?;
+    part2(&s)?;
 
     Ok(())
 }

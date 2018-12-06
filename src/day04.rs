@@ -7,15 +7,13 @@ extern crate itertools;
 use itertools::Itertools;
 
 use std::str::FromStr;
-use std::fs::File;
-use std::io::prelude::*;
 use std::fmt;
 use std::collections::HashMap;
 
 use regex::Regex;
 use std::error;
 
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+use aoc::{read_input, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct CustomError(String);
@@ -146,11 +144,7 @@ struct Sleeping {
 }
 
 fn main() -> Result<()> {
-    let mut s = String::new();
-
-    let mut file = File::open("input/day04.txt")?;
-
-    file.read_to_string(&mut s)?;
+    let s = read_input()?;
 
     part1(&s)?;
     part2(&s)?;

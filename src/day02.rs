@@ -1,15 +1,8 @@
-use std::fs::File;
-use std::io::prelude::*;
 use std::collections::{HashMap};
-
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+use aoc::Result;
 
 fn main() -> Result<()> {
-    let mut s = String::new();
-
-    let mut file = File::open("input/day02.txt")?;
-
-    file.read_to_string(&mut s)?;
+    let s = aoc::read_input()?;
 
     part1(&s)?;
     part2(&s)?;
