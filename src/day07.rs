@@ -200,55 +200,32 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
         })
     }
 
-    fn add_work(tick: usize, worker: &Work, step: &str, work_queue: &mut BTreeSet<String>, steps: &WorkMap, prereqs: &WorkMap, completed: &mut Vec<String>) -> bool {
-        let mut actually_complete = false;
-        if let Some(reqs) = prereqs.get(step) {
-            let all_completed =
-                reqs.iter().all(|v| completed.contains(v));
+    fn add_work(step: &str, work_queue: &mut BTreeSet<String>, steps: &WorkMap, prereqs: &WorkMap, completed: &mut Vec<String>) {
+        completed.push(step.to_string());
 
-            if all_completed {
-                // eprintln!("{} Completed {:?}", tick, worker);
-                completed.push(step.to_string());
-                actually_complete = true;
-            } else {
-                eprintln!("{} Waiting preqres {:?}", tick, worker);
-                return false;
-            }
-        } else {
-            // eprintln!("{} Completed {:?}", tick, worker);
-            completed.push(step.to_string());
-            actually_complete = true;
-        }
-        if actually_complete {
-            if let Some(after) = steps.get(step) {
-                for aft in after.iter() {
-                    match prereqs.get(aft) {
-                        Some(reqs) => {
-                            let all_completed =
-                                reqs.iter().all(|v| completed.contains(v));
+        if let Some(after) = steps.get(step) {
+            for aft in after.iter() {
+                match prereqs.get(aft) {
+                    Some(reqs) => {
+                        let all_completed =
+                            reqs.iter().all(|v| completed.contains(v));
 
-                            if all_completed {
-                                work_queue.insert(aft.to_string());
-                            }
-                        }
-                        None => {
+                        if all_completed {
                             work_queue.insert(aft.to_string());
                         }
                     }
+                    None => {
+                        work_queue.insert(aft.to_string());
+                    }
                 }
             }
-
-            return true;
         }
-
-        false
     }
 
-    fn maybe_take_work(tick: usize, worker: &mut Work, work_queue: &mut BTreeSet<String>, times: &HashMap<String, usize>) -> bool {
+    fn maybe_take_work(worker: &mut Work, work_queue: &mut BTreeSet<String>, times: &HashMap<String, usize>) -> bool {
         if let Some(work) = pop_front(work_queue) {
             worker.duration = *times.get(&work).unwrap();
             worker.target = Some(work);
-            // eprintln!("{} Starting {:?}", tick, worker);
             return true;
         } else {
             worker.target = None;
@@ -272,15 +249,28 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
 
                     // Worker completed current task
                     if worker.duration == 0 {
-                        if add_work(tick, worker, t, &mut work_queue, &map, &prereqs, &mut completed) {
-                            maybe_take_work(tick, worker, &mut work_queue, &times);
-                        }
+                        add_work(t, &mut work_queue, &map, &prereqs, &mut completed);
+                        maybe_take_work(worker, &mut work_queue, &times);
                     }
                 },
 
                 // Worker is waiting for work
                 None => {
-                    maybe_take_work(tick,  worker, &mut work_queue, &times);
+                    maybe_take_work(worker, &mut work_queue, &times);
+                }
+            }
+        }
+
+        // After all workers have given up their work
+        // attempt one final time to get actual work
+        for worker in workers.iter_mut() {
+            match worker.target {
+                // Worker is working on something
+                Some(_) => {},
+
+                // Worker is waiting for work
+                None => {
+                    maybe_take_work(worker, &mut work_queue, &times);
                 }
             }
         }
@@ -298,11 +288,8 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
 
         output.push_str(&format!("   {}", completed.join("")));
 
-        // eprintln!("{}", output);
-        if work_queue.is_empty() && !workers_working(&workers) {
-        } else {
-            tick += 1;
-        }
+        eprintln!("{}", output);
+        tick += 1;
     }
 
     // Remove last tick that gets added when the loop goes around one final time
