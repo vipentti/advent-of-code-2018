@@ -3,10 +3,18 @@ use std::fs::File;
 use std::error;
 use std::io::prelude::*;
 use std::fmt;
+use regex;
 
+
+pub fn get_value<'a, T: std::str::FromStr>(caps: &regex::Captures<'a>, index: usize) -> std::result::Result<T, CustomError> {
+    caps
+        .get(index)
+        .and_then(|v| v.as_str().parse::<T>().ok())
+        .ok_or_else::<CustomError, _>(|| CustomError(format!("Invalid {}", index)))
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CustomError(String);
+pub struct CustomError(pub String);
 
 impl fmt::Display for CustomError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
