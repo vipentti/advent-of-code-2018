@@ -1,5 +1,5 @@
 use aoc::{Result, CustomError};
-use std::collections::{HashMap, BTreeSet};
+use std::collections::{HashMap, BTreeMap, BTreeSet};
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -8,6 +8,7 @@ fn main() -> Result<()> {
     let s = aoc::read_input()?;
 
     part1(&s)?;
+    part2(&s, 60, 5)?;
 
     Ok(())
 }
@@ -43,15 +44,25 @@ fn get_steps(s: &str) -> Result<Vec<Step>> {
     steps
 }
 
-fn pop_front(tree: &mut BTreeSet<String>) -> String {
-    let first = tree.iter()
-        .next()
-        .unwrap()
-        .to_string();
+fn pop_front(tree: &mut BTreeSet<String>) -> Option<String> {
 
-    tree.remove(&first);
+    let first = tree.iter().next().map(|v| v.to_string());
 
-    first
+    if let Some(fst) = first {
+        tree.remove(&fst);
+        return Some(fst);
+    }
+    None
+
+
+    // let first = tree.iter()
+    //     .next()
+    //     .unwrap()
+    //     .to_string();
+
+    // tree.remove(&first);
+
+    // first
 }
 
 fn part1(s: &str) -> Result<String> {
@@ -81,14 +92,14 @@ fn part1(s: &str) -> Result<String> {
     // eprintln!("Maps {:?}", map);
     // eprintln!("Reqs {:?}", prereqs);
 
-    let mut stack: BTreeSet<_> = firsts.difference(&seconds).cloned().collect();
+    let mut work_queue: BTreeSet<_> = firsts.difference(&seconds).cloned().collect();
 
-    // eprintln!("Starts {:?}", stack);
+    eprintln!("Starts {:?}", work_queue);
 
     let mut completed: Vec<String> = Vec::new();
 
-    while !stack.is_empty() {
-        let node = pop_front(&mut stack);
+    while !work_queue.is_empty() {
+        let node = pop_front(&mut work_queue).unwrap();
         // eprintln!("Visiting {}", node);
 
         completed.push(node.clone());
@@ -102,11 +113,11 @@ fn part1(s: &str) -> Result<String> {
                                 reqs.iter().all(|v| completed.contains(v));
 
                             if all_completed {
-                                stack.insert(aft.to_string());
+                                work_queue.insert(aft.to_string());
                             }
                         }
                         None => {
-                            stack.insert(aft.to_string());
+                            work_queue.insert(aft.to_string());
                         }
                     }
                 }
@@ -120,6 +131,192 @@ fn part1(s: &str) -> Result<String> {
     eprintln!("part1: {}", res);
 
     Ok(res)
+}
+
+type WorkMap = BTreeMap<String, Vec<String>>;
+
+fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
+
+    let times: HashMap<String, usize> = (b'A'..=b'Z').enumerate()
+        .map(|(i, v)| {
+            ((v as char).to_string(), (i + 1) + min_time)
+        })
+        .collect()
+        ;
+
+    // eprintln!("Times {:?}", times);
+
+    let steps = get_steps(s)?;
+
+    let mut firsts  = BTreeSet::new();
+    let mut seconds = BTreeSet::new();
+    let mut map: WorkMap = BTreeMap::new();
+    let mut prereqs: WorkMap = BTreeMap::new();
+
+    for step in steps.iter() {
+        firsts.insert(step.first.clone());
+        seconds.insert(step.second.clone());
+        {
+            let entry = map.entry(step.first.clone())
+                .or_insert_with(|| Vec::new());
+            entry.push(step.second.clone());
+        }
+        {
+            let entry = prereqs.entry(step.second.clone())
+                .or_insert_with(|| Vec::new());
+            entry.push(step.first.clone());
+        }
+    }
+
+    #[derive(Debug, Clone, Default)]
+    struct Work {
+        id: usize,
+        target: Option<String>,
+        duration: usize,
+    }
+
+    // eprintln!("Maps {:?}", map);
+    // eprintln!("Reqs {:?}", prereqs);
+
+    let mut work_queue: BTreeSet<_> = firsts.difference(&seconds).cloned().collect();
+
+    // eprintln!("Starts {:?}", work_queue);
+
+    let mut completed: Vec<String> = Vec::new();
+
+    let mut tick = 0;
+
+    let mut workers = (0..nr_workers)
+        .into_iter()
+        .map(|i| Work { id: i, ..Default::default() })
+        .collect::<Vec<_>>();
+
+    fn workers_working(workers: &[Work]) -> bool {
+        workers.iter().any(|v| {
+            if let Some(_) = v.target {
+                return true;
+            }
+            false
+        })
+    }
+
+    fn add_work(tick: usize, worker: &Work, step: &str, work_queue: &mut BTreeSet<String>, steps: &WorkMap, prereqs: &WorkMap, completed: &mut Vec<String>) -> bool {
+        let mut actually_complete = false;
+        if let Some(reqs) = prereqs.get(step) {
+            let all_completed =
+                reqs.iter().all(|v| completed.contains(v));
+
+            if all_completed {
+                // eprintln!("{} Completed {:?}", tick, worker);
+                completed.push(step.to_string());
+                actually_complete = true;
+            } else {
+                eprintln!("{} Waiting preqres {:?}", tick, worker);
+                return false;
+            }
+        } else {
+            // eprintln!("{} Completed {:?}", tick, worker);
+            completed.push(step.to_string());
+            actually_complete = true;
+        }
+        if actually_complete {
+            if let Some(after) = steps.get(step) {
+                for aft in after.iter() {
+                    match prereqs.get(aft) {
+                        Some(reqs) => {
+                            let all_completed =
+                                reqs.iter().all(|v| completed.contains(v));
+
+                            if all_completed {
+                                work_queue.insert(aft.to_string());
+                            }
+                        }
+                        None => {
+                            work_queue.insert(aft.to_string());
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        false
+    }
+
+    fn maybe_take_work(tick: usize, worker: &mut Work, work_queue: &mut BTreeSet<String>, times: &HashMap<String, usize>) -> bool {
+        if let Some(work) = pop_front(work_queue) {
+            worker.duration = *times.get(&work).unwrap();
+            worker.target = Some(work);
+            // eprintln!("{} Starting {:?}", tick, worker);
+            return true;
+        } else {
+            worker.target = None;
+            false
+        }
+    }
+
+    while !work_queue.is_empty() || workers_working(&workers) {
+        // eprintln!("{} Queue {:?}", tick, work_queue);
+
+        let mut output = format!("{: <6}", tick);
+        // let mut output = String::new()
+
+        for worker in workers.iter_mut() {
+            match worker.target {
+                // Worker is working on something
+                Some(ref t) => {
+                    if worker.duration > 0 {
+                        worker.duration -= 1;
+                    }
+
+                    // Worker completed current task
+                    if worker.duration == 0 {
+                        if add_work(tick, worker, t, &mut work_queue, &map, &prereqs, &mut completed) {
+                            maybe_take_work(tick, worker, &mut work_queue, &times);
+                        }
+                    }
+                },
+
+                // Worker is waiting for work
+                None => {
+                    maybe_take_work(tick,  worker, &mut work_queue, &times);
+                }
+            }
+        }
+
+        for worker in workers.iter() {
+            match worker.target {
+                Some(ref t) => {
+                    output.push_str(&format!("{: <2}", t));
+                }
+                None => {
+                    output.push_str(&format!("{: <2}", '.'));
+                }
+            }
+        }
+
+        output.push_str(&format!("   {}", completed.join("")));
+
+        // eprintln!("{}", output);
+        if work_queue.is_empty() && !workers_working(&workers) {
+        } else {
+            tick += 1;
+        }
+    }
+
+    // Remove last tick that gets added when the loop goes around one final time
+    if tick > 0 {
+        tick -= 1;
+    }
+
+    let res = completed.join("");
+
+    eprintln!("part1: {}", res);
+
+    eprintln!("part2: {}", tick);
+
+    Ok(0)
 }
 
 #[cfg(test)]
@@ -154,5 +351,10 @@ Step A must be finished before step D can begin.
     #[test]
     fn part1_example_input_unsorted() {
         assert_eq!("CABDFE", part1(INPUT_UNSORTED.trim()).unwrap());
+    }
+
+    #[test]
+    fn part2_example_input() {
+        assert_eq!(15, part2(INPUT.trim(), 0, 2).unwrap());
     }
 }
