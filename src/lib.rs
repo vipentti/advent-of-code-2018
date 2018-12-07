@@ -1,16 +1,19 @@
-use std::env;
-use std::fs::File;
-use std::error;
-use std::io::prelude::*;
-use std::fmt;
 use regex;
+use std::env;
+use std::error;
+use std::fmt;
+use std::fs::File;
+use std::io::prelude::*;
 
-
-pub fn get_value<'a, T: std::str::FromStr>(caps: &regex::Captures<'a>, index: usize) -> std::result::Result<T, CustomError> {
-    caps
-        .get(index)
+pub fn get_value<'a, T: std::str::FromStr>(
+    caps: &regex::Captures<'a>,
+    index: usize,
+) -> std::result::Result<T, CustomError> {
+    caps.get(index)
         .and_then(|v| v.as_str().parse::<T>().ok())
-        .ok_or_else::<CustomError, _>(|| CustomError(format!("Invalid {}", index)))
+        .ok_or_else::<CustomError, _>(|| {
+            CustomError(format!("Invalid {}", index))
+        })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,8 +46,10 @@ pub fn read_input() -> Result<String> {
 
     let exe_name = env::current_exe()?;
 
-    let name = exe_name.file_stem()
-        .ok_or_else::<Box<CustomError>, _>(|| CustomError("Unable to get file_stem".to_owned()).into())?;
+    let name =
+        exe_name.file_stem().ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Unable to get file_stem".to_owned()).into()
+        })?;
 
     let mut file = File::open(format!("input/{}.txt", name.to_string_lossy()))?;
 

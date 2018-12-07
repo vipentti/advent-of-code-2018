@@ -6,9 +6,9 @@ extern crate itertools;
 
 use itertools::Itertools;
 
-use std::str::FromStr;
-use std::fmt;
 use std::collections::HashMap;
+use std::fmt;
+use std::str::FromStr;
 
 use regex::Regex;
 use std::error;
@@ -36,11 +36,15 @@ impl error::Error for CustomError {
     }
 }
 
-fn get_value<'a>(caps: &regex::Captures<'a>, index: usize) -> std::result::Result<i32, CustomError> {
-    caps
-        .get(index)
+fn get_value<'a>(
+    caps: &regex::Captures<'a>,
+    index: usize,
+) -> std::result::Result<i32, CustomError> {
+    caps.get(index)
         .and_then(|v| v.as_str().parse::<i32>().ok())
-        .ok_or_else::<CustomError, _>(|| CustomError(format!("Invalid {}", index)))
+        .ok_or_else::<CustomError, _>(|| {
+            CustomError(format!("Invalid {}", index))
+        })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -67,7 +71,8 @@ impl FromStr for EventType {
             return Ok(EventType::WakeUp);
         }
 
-        let caps = RE.captures(s)
+        let caps = RE
+            .captures(s)
             .ok_or_else(|| CustomError("Invalid captures".to_owned()))?;
 
         let id = get_value(&caps, 1)?;
@@ -75,7 +80,6 @@ impl FromStr for EventType {
         Ok(EventType::ShiftStart(id))
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 struct Timestamp {
@@ -97,7 +101,8 @@ impl FromStr for Timestamp {
             static ref RE: Regex = Regex::new(r"(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})").unwrap();
         }
 
-        let caps = RE.captures(s)
+        let caps = RE
+            .captures(s)
             .ok_or_else(|| CustomError("Invalid captures".to_owned()))?;
 
         let year = get_value(&caps, 1)?;
@@ -129,10 +134,7 @@ impl FromStr for LogEvent {
         let timestamp = s.parse::<Timestamp>()?;
         let event = s.parse::<EventType>()?;
 
-        Ok(LogEvent {
-            timestamp,
-            event,
-        })
+        Ok(LogEvent { timestamp, event })
     }
 }
 
@@ -153,9 +155,8 @@ fn main() -> Result<()> {
 }
 
 fn part1(s: &str) -> Result<i32> {
-    let events: std::result::Result<Vec<_>, _> = s.lines()
-        .map(|v| v.parse::<LogEvent>())
-        .collect();
+    let events: std::result::Result<Vec<_>, _> =
+        s.lines().map(|v| v.parse::<LogEvent>()).collect();
 
     let mut events = events?;
 
@@ -171,9 +172,8 @@ fn part1(s: &str) -> Result<i32> {
 }
 
 fn part2(s: &str) -> Result<i32> {
-    let events: std::result::Result<Vec<_>, _> = s.lines()
-        .map(|v| v.parse::<LogEvent>())
-        .collect();
+    let events: std::result::Result<Vec<_>, _> =
+        s.lines().map(|v| v.parse::<LogEvent>()).collect();
 
     let mut events = events?;
 
@@ -204,7 +204,7 @@ fn gather(events: &[LogEvent]) -> Result<(i32, i32)> {
                 } else {
                     next_guard = id;
                 }
-            },
+            }
             EventType::WakeUp => {
                 sleeping_end = event.timestamp.minute;
 
@@ -215,7 +215,7 @@ fn gather(events: &[LogEvent]) -> Result<(i32, i32)> {
                         end: sleeping_end,
                         duration: sleeping_end - sleeping_start,
                     });
-            },
+            }
             EventType::FallAsleep => {
                 sleeping_start = event.timestamp.minute;
             }
@@ -223,15 +223,15 @@ fn gather(events: &[LogEvent]) -> Result<(i32, i32)> {
         guard = next_guard;
     }
 
-    let entry = map.iter()
+    let entry = map
+        .iter()
         .max_by_key(|(_, v)| {
-            let total_sleep: i32 = v.iter()
-                .map(|v| v.duration)
-                .sum();
+            let total_sleep: i32 = v.iter().map(|v| v.duration).sum();
             total_sleep
         })
-        .ok_or_else::<Box<CustomError>, _>(|| CustomError("Unable to find entry".to_string()).into())
-        ;
+        .ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Unable to find entry".to_string()).into()
+        });
 
     let (id, values) = entry?;
     let mut sleeping = vec![0; 60];
@@ -242,11 +242,13 @@ fn gather(events: &[LogEvent]) -> Result<(i32, i32)> {
         }
     }
 
-    let minute = sleeping.iter()
+    let minute = sleeping
+        .iter()
         .enumerate()
         .max_by(|(_, val), (_, v2)| val.cmp(&v2))
-        .ok_or_else::<Box<CustomError>, _>(|| CustomError("Missing minute".to_string()).into())
-        ;
+        .ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Missing minute".to_string()).into()
+        });
 
     let (index, _) = minute?;
 
@@ -264,39 +266,40 @@ fn gather_2(events: &[LogEvent]) -> Result<(i32, i32)> {
         match event.event {
             EventType::ShiftStart(id) => {
                 guard = id;
-            },
+            }
             EventType::WakeUp => {
                 assert!(guard > 0);
                 sleeping_end = event.timestamp.minute;
 
-                let minutes = map.entry(guard)
-                    .or_insert_with(|| vec![0; 60])
-                    ;
+                let minutes = map.entry(guard).or_insert_with(|| vec![0; 60]);
 
                 for i in sleeping_start..sleeping_end {
                     minutes[i as usize] += 1;
                 }
-            },
+            }
             EventType::FallAsleep => {
                 sleeping_start = event.timestamp.minute;
             }
         }
     }
 
-    let entry = map.iter()
-        .max_by_key(|(_, v)| {
-            v.iter().max()
-        })
-        .ok_or_else::<Box<CustomError>, _>(|| CustomError("Unable to find entry".to_string()).into())
-        ;
+    let entry = map
+        .iter()
+        .max_by_key(|(_, v)| v.iter().max())
+        .ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Unable to find entry".to_string()).into()
+        });
 
     let entry = entry?;
 
-    let minute = entry.1.iter()
+    let minute = entry
+        .1
+        .iter()
         .enumerate()
         .max_by_key(|(_, &v)| v)
-        .ok_or_else::<Box<CustomError>, _>(|| CustomError("Missing minute".to_string()).into())
-        ;
+        .ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Missing minute".to_string()).into()
+        });
 
     let minute = minute?;
 
@@ -317,19 +320,26 @@ fn gather_2(events: &[LogEvent]) -> Result<(i32, i32)> {
 /// ```
 #[allow(dead_code)]
 fn visualize(events: &[LogEvent]) {
-
     let header = format!("{:7}{:6}{}", "Date", "ID", "Minute");
 
     let id = " ".repeat(13);
 
-    let minutes_top = format!("{}{}", id, "000000000011111111112222222222333333333344444444445555555555");
-    let minutes_bot = format!("{}{}", id, "012345678901234567890123456789012345678901234567890123456789");
+    let minutes_top = format!(
+        "{}{}",
+        id, "000000000011111111112222222222333333333344444444445555555555"
+    );
+    let minutes_bot = format!(
+        "{}{}",
+        id, "012345678901234567890123456789012345678901234567890123456789"
+    );
 
     eprintln!("{}", header);
     eprintln!("{}", minutes_top);
     eprintln!("{}", minutes_bot);
 
-    let groups = events.iter().group_by(|e| (e.timestamp.month, e.timestamp.day));
+    let groups = events
+        .iter()
+        .group_by(|e| (e.timestamp.month, e.timestamp.day));
 
     let mut sleeping_start = 0;
     let mut sleeping_end;
@@ -349,15 +359,14 @@ fn visualize(events: &[LogEvent]) {
                         guard = id;
                         next_guard = id;
                     }
-                },
+                }
                 EventType::WakeUp => {
                     sleeping_end = event.timestamp.minute;
 
                     for index in sleeping_start..sleeping_end {
                         sleeping[index as usize] = '#';
                     }
-
-                },
+                }
                 EventType::FallAsleep => {
                     sleeping_start = event.timestamp.minute;
                 }
@@ -434,29 +443,3 @@ mod part2_tests {
         assert_eq!(99 * 45, part2(input.trim()).unwrap());
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

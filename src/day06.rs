@@ -1,9 +1,9 @@
-use aoc::{read_input, Result, CustomError};
-use std::str::FromStr;
+use aoc::{read_input, CustomError, Result};
 use std::collections::HashMap;
+use std::str::FromStr;
 
-use regex::Regex;
 use lazy_static::*;
+use regex::Regex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 struct Point {
@@ -23,21 +23,17 @@ impl FromStr for Point {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         lazy_static! {
-            static ref RE: Regex =
-                Regex::new(r"(\d+),\s*(\d+)").unwrap();
+            static ref RE: Regex = Regex::new(r"(\d+),\s*(\d+)").unwrap();
         }
 
-        let caps = RE.captures(s)
+        let caps = RE
+            .captures(s)
             .ok_or_else(|| CustomError("Invalid captures".to_owned()))?;
 
         let x = aoc::get_value(&caps, 1)?;
         let y = aoc::get_value(&caps, 2)?;
 
-        Ok(Point {
-            x,
-            y,
-            id: 0,
-        })
+        Ok(Point { x, y, id: 0 })
     }
 }
 
@@ -107,17 +103,39 @@ fn manhattan_distance(a: &Point, b: &Point) -> usize {
 }
 
 fn get_points(s: &str) -> Result<(Vec<Point>, usize, usize)> {
-
-    let coords: std::result::Result<Vec<_>, _> = s.lines()
-        .map(|v| v.parse::<Point>())
-        .collect();
+    let coords: std::result::Result<Vec<_>, _> =
+        s.lines().map(|v| v.parse::<Point>()).collect();
 
     let mut coords = coords?;
 
-    let min_x = coords.iter().map(|c| c.x).min().ok_or_else::<Box<CustomError>,_ >(|| CustomError("Missing min_x".to_string()).into())?;
-    let max_x = coords.iter().map(|c| c.x).max().ok_or_else::<Box<CustomError>,_ >(|| CustomError("Missing max_x".to_string()).into())?;
-    let min_y = coords.iter().map(|c| c.y).min().ok_or_else::<Box<CustomError>,_ >(|| CustomError("Missing min_y".to_string()).into())?;
-    let max_y = coords.iter().map(|c| c.y).max().ok_or_else::<Box<CustomError>,_ >(|| CustomError("Missing max_y".to_string()).into())?;
+    let min_x = coords
+        .iter()
+        .map(|c| c.x)
+        .min()
+        .ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Missing min_x".to_string()).into()
+        })?;
+    let max_x = coords
+        .iter()
+        .map(|c| c.x)
+        .max()
+        .ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Missing max_x".to_string()).into()
+        })?;
+    let min_y = coords
+        .iter()
+        .map(|c| c.y)
+        .min()
+        .ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Missing min_y".to_string()).into()
+        })?;
+    let max_y = coords
+        .iter()
+        .map(|c| c.y)
+        .max()
+        .ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Missing max_y".to_string()).into()
+        })?;
 
     let size_x = (max_x - min_x).abs() as usize + 1;
     let size_y = (max_y - min_y).abs() as usize + 1;
@@ -138,7 +156,8 @@ fn part1(s: &str) -> Result<usize> {
 
     update_grid(&mut grid, &coords)?;
 
-    let r = count_grid1(&mut grid, (size_x - 1) as usize, (size_y - 1) as usize)?;
+    let r =
+        count_grid1(&mut grid, (size_x - 1) as usize, (size_y - 1) as usize)?;
 
     eprintln!("part1: {:?}", r);
 
@@ -174,22 +193,23 @@ fn update_grid(grid: &mut Grid<Cell>, coords: &[Point]) -> Result<()> {
                     col.set(coord.id);
                 }
             }
-
         }
     }
 
     Ok(())
 }
 
-fn count_grid2(grid: &Grid<Cell>, coords: &[Point], limit: usize) -> Result<usize> {
+fn count_grid2(
+    grid: &Grid<Cell>,
+    coords: &[Point],
+    limit: usize,
+) -> Result<usize> {
     let mut total = 0;
     for (y, row) in grid.iter().enumerate() {
         for (x, _) in row.iter().enumerate() {
             let pt: Point = (x, y).into();
 
-            let all: usize = coords.iter()
-                .map(|c| pt.distance_from(c))
-                .sum();
+            let all: usize = coords.iter().map(|c| pt.distance_from(c)).sum();
 
             if all < limit {
                 total += 1;
@@ -200,18 +220,19 @@ fn count_grid2(grid: &Grid<Cell>, coords: &[Point], limit: usize) -> Result<usiz
     Ok(total)
 }
 
-fn count_grid1(grid: &mut Grid<Cell>, max_x: usize, max_y: usize) -> Result<usize> {
+fn count_grid1(
+    grid: &mut Grid<Cell>,
+    max_x: usize,
+    max_y: usize,
+) -> Result<usize> {
     let mut map = HashMap::new();
     for (y, row) in grid.iter().enumerate() {
         for (x, col) in row.iter().enumerate() {
             if let Some(id) = col.id() {
-                if x == 0 || y == 0 || x == max_x ||y == max_y {
-                    *map.entry(id)
-                        .or_insert_with(|| 0)
-                        = i32::min_value();
+                if x == 0 || y == 0 || x == max_x || y == max_y {
+                    *map.entry(id).or_insert_with(|| 0) = i32::min_value();
                 } else {
-                    let entry = map.entry(id)
-                        .or_insert_with(|| 0);
+                    let entry = map.entry(id).or_insert_with(|| 0);
 
                     if let Some(res) = entry.checked_add(1) {
                         *entry = res;
@@ -221,10 +242,12 @@ fn count_grid1(grid: &mut Grid<Cell>, max_x: usize, max_y: usize) -> Result<usiz
         }
     }
 
-    let result = map.iter()
+    let result = map
+        .iter()
         .filter(|(_, v)| **v >= 0)
         .map(|(_, v)| v)
-        .max().unwrap();
+        .max()
+        .unwrap();
 
     Ok(*result as usize)
 }
@@ -241,7 +264,6 @@ fn display_grid(grid: &Grid<Cell>) -> Result<()> {
     }
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {

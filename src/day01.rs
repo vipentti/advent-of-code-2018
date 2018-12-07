@@ -5,9 +5,8 @@ use aoc::Result;
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
 
-    let numbers: std::result::Result<Vec<_>, _> = s.lines()
-        .map(|v| v.parse::<i32>())
-        .collect();
+    let numbers: std::result::Result<Vec<_>, _> =
+        s.lines().map(|v| v.parse::<i32>()).collect();
 
     let numbers = numbers?;
 

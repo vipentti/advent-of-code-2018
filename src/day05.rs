@@ -19,7 +19,7 @@ fn react(s: &str, ignore: Option<char>) -> Vec<char> {
     let mut output = Vec::new();
 
     for polymer in s.chars() {
-        if Some(polymer.to_ascii_lowercase()) == ignore  {
+        if Some(polymer.to_ascii_lowercase()) == ignore {
             // skip
         } else if reacts(polymer, output.last().cloned().unwrap_or_default()) {
             output.pop();
@@ -58,7 +58,6 @@ fn part2(s: &str) -> Result<usize> {
 
     Ok(length)
 }
-
 
 #[cfg(test)]
 mod part1_tests {

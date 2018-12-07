@@ -1,5 +1,5 @@
-use std::collections::{HashMap};
 use aoc::Result;
+use std::collections::HashMap;
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -11,7 +11,6 @@ fn main() -> Result<()> {
 }
 
 fn part1(s: &str) -> Result<usize> {
-
     let mut twices = 0;
     let mut thrices = 0;
 
@@ -51,7 +50,6 @@ fn diff_by_one(lhs: &str, rhs: &str) -> Option<String> {
     let mut buffer = Vec::with_capacity(lhs.len());
 
     for (cha, chb) in lhs.chars().zip(rhs.chars()) {
-
         if cha != chb {
             diff += 1;
         } else {
@@ -61,21 +59,18 @@ fn diff_by_one(lhs: &str, rhs: &str) -> Option<String> {
         if diff > 1 {
             return None;
         }
-
     }
 
     if diff == 0 {
         return None;
     }
 
-    let s = buffer.into_iter()
-        .collect::<String>();
+    let s = buffer.into_iter().collect::<String>();
 
     Some(s)
 }
 
 fn count_duplicates(s: &str) -> Result<(usize, usize)> {
-
     let mut twice = 0;
     let mut thrice = 0;
 
@@ -100,7 +95,6 @@ fn count_duplicates(s: &str) -> Result<(usize, usize)> {
             break;
         }
     }
-
 
     for (_, v) in thrices {
         if v == 3 {

@@ -1,5 +1,5 @@
-use aoc::{Result, CustomError};
-use std::collections::{HashMap, BTreeMap, BTreeSet};
+use aoc::{CustomError, Result};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -23,29 +23,27 @@ fn get_steps(s: &str) -> Result<Vec<Step>> {
     lazy_static! {
         static ref RE: Regex = Regex::new(
             r"Step (\w+) must be finished before step (\w+) can begin\."
-        ).unwrap();
+        )
+        .unwrap();
     }
 
-    let steps = s.lines()
+    let steps = s
+        .lines()
         .map(|line| {
-            let caps = RE.captures(line)
+            let caps = RE
+                .captures(line)
                 .ok_or_else(|| CustomError("Invalid captures".to_owned()))?;
 
             let first: String = aoc::get_value(&caps, 1)?;
             let second: String = aoc::get_value(&caps, 2)?;
-            Ok(Step {
-                first,
-                second,
-            })
+            Ok(Step { first, second })
         })
-        .collect()
-        ;
+        .collect();
 
     steps
 }
 
 fn pop_front(tree: &mut BTreeSet<String>) -> Option<String> {
-
     let first = tree.iter().next().map(|v| v.to_string());
 
     if let Some(fst) = first {
@@ -53,23 +51,12 @@ fn pop_front(tree: &mut BTreeSet<String>) -> Option<String> {
         return Some(fst);
     }
     None
-
-
-    // let first = tree.iter()
-    //     .next()
-    //     .unwrap()
-    //     .to_string();
-
-    // tree.remove(&first);
-
-    // first
 }
 
 fn part1(s: &str) -> Result<String> {
-
     let steps = get_steps(s)?;
 
-    let mut firsts  = BTreeSet::new();
+    let mut firsts = BTreeSet::new();
     let mut seconds = BTreeSet::new();
     let mut map: HashMap<String, Vec<String>> = HashMap::new();
     let mut prereqs: HashMap<String, Vec<String>> = HashMap::new();
@@ -78,12 +65,13 @@ fn part1(s: &str) -> Result<String> {
         firsts.insert(step.first.clone());
         seconds.insert(step.second.clone());
         {
-            let entry = map.entry(step.first.clone())
-                .or_insert_with(|| Vec::new());
+            let entry =
+                map.entry(step.first.clone()).or_insert_with(|| Vec::new());
             entry.push(step.second.clone());
         }
         {
-            let entry = prereqs.entry(step.second.clone())
+            let entry = prereqs
+                .entry(step.second.clone())
                 .or_insert_with(|| Vec::new());
             entry.push(step.first.clone());
         }
@@ -92,7 +80,8 @@ fn part1(s: &str) -> Result<String> {
     // eprintln!("Maps {:?}", map);
     // eprintln!("Reqs {:?}", prereqs);
 
-    let mut work_queue: BTreeSet<_> = firsts.difference(&seconds).cloned().collect();
+    let mut work_queue: BTreeSet<_> =
+        firsts.difference(&seconds).cloned().collect();
 
     eprintln!("Starts {:?}", work_queue);
 
@@ -136,19 +125,16 @@ fn part1(s: &str) -> Result<String> {
 type WorkMap = BTreeMap<String, Vec<String>>;
 
 fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
-
-    let times: HashMap<String, usize> = (b'A'..=b'Z').enumerate()
-        .map(|(i, v)| {
-            ((v as char).to_string(), (i + 1) + min_time)
-        })
-        .collect()
-        ;
+    let times: HashMap<String, usize> = (b'A'..=b'Z')
+        .enumerate()
+        .map(|(i, v)| ((v as char).to_string(), (i + 1) + min_time))
+        .collect();
 
     // eprintln!("Times {:?}", times);
 
     let steps = get_steps(s)?;
 
-    let mut firsts  = BTreeSet::new();
+    let mut firsts = BTreeSet::new();
     let mut seconds = BTreeSet::new();
     let mut map: WorkMap = BTreeMap::new();
     let mut prereqs: WorkMap = BTreeMap::new();
@@ -157,12 +143,13 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
         firsts.insert(step.first.clone());
         seconds.insert(step.second.clone());
         {
-            let entry = map.entry(step.first.clone())
-                .or_insert_with(|| Vec::new());
+            let entry =
+                map.entry(step.first.clone()).or_insert_with(|| Vec::new());
             entry.push(step.second.clone());
         }
         {
-            let entry = prereqs.entry(step.second.clone())
+            let entry = prereqs
+                .entry(step.second.clone())
                 .or_insert_with(|| Vec::new());
             entry.push(step.first.clone());
         }
@@ -178,7 +165,8 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
     // eprintln!("Maps {:?}", map);
     // eprintln!("Reqs {:?}", prereqs);
 
-    let mut work_queue: BTreeSet<_> = firsts.difference(&seconds).cloned().collect();
+    let mut work_queue: BTreeSet<_> =
+        firsts.difference(&seconds).cloned().collect();
 
     // eprintln!("Starts {:?}", work_queue);
 
@@ -188,7 +176,10 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
 
     let mut workers = (0..nr_workers)
         .into_iter()
-        .map(|i| Work { id: i, ..Default::default() })
+        .map(|i| Work {
+            id: i,
+            ..Default::default()
+        })
         .collect::<Vec<_>>();
 
     fn workers_working(workers: &[Work]) -> bool {
@@ -200,7 +191,13 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
         })
     }
 
-    fn add_work(step: &str, work_queue: &mut BTreeSet<String>, steps: &WorkMap, prereqs: &WorkMap, completed: &mut Vec<String>) {
+    fn add_work(
+        step: &str,
+        work_queue: &mut BTreeSet<String>,
+        steps: &WorkMap,
+        prereqs: &WorkMap,
+        completed: &mut Vec<String>,
+    ) {
         completed.push(step.to_string());
 
         if let Some(after) = steps.get(step) {
@@ -222,7 +219,11 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
         }
     }
 
-    fn maybe_take_work(worker: &mut Work, work_queue: &mut BTreeSet<String>, times: &HashMap<String, usize>) -> bool {
+    fn maybe_take_work(
+        worker: &mut Work,
+        work_queue: &mut BTreeSet<String>,
+        times: &HashMap<String, usize>,
+    ) -> bool {
         if let Some(work) = pop_front(work_queue) {
             worker.duration = *times.get(&work).unwrap();
             worker.target = Some(work);
@@ -249,10 +250,16 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
 
                     // Worker completed current task
                     if worker.duration == 0 {
-                        add_work(t, &mut work_queue, &map, &prereqs, &mut completed);
+                        add_work(
+                            t,
+                            &mut work_queue,
+                            &map,
+                            &prereqs,
+                            &mut completed,
+                        );
                         maybe_take_work(worker, &mut work_queue, &times);
                     }
-                },
+                }
 
                 // Worker is waiting for work
                 None => {
@@ -266,7 +273,7 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
         for worker in workers.iter_mut() {
             match worker.target {
                 // Worker is working on something
-                Some(_) => {},
+                Some(_) => {}
 
                 // Worker is waiting for work
                 None => {

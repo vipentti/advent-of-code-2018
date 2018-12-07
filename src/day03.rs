@@ -14,7 +14,6 @@ impl fmt::Display for ClaimError {
     }
 }
 
-
 // This is important for other errors to wrap this one.
 impl error::Error for ClaimError {
     fn description(&self) -> &str {
@@ -67,24 +66,30 @@ fn main() -> Result<()> {
 fn part1(s: &str) -> Result<usize> {
     let regex = regex::Regex::new(r"#(\d+)\s+@\s+(\d+),(\d+):\s+(\d+)x(\d+)")?;
 
-    let claims: Result<Vec<Claim>> = s.lines()
+    let claims: Result<Vec<Claim>> = s
+        .lines()
         .map(|s| s.trim())
         .filter(|s| s.len() > 0)
         .map(|s| parse_claim(s, &regex))
-        .collect()
-        ;
+        .collect();
 
     let claims = claims?;
 
-    let width = claims.iter().map(|c| c.rect.right())
+    let width = claims
+        .iter()
+        .map(|c| c.rect.right())
         .max()
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid size".to_owned()).into())?
-        ;
+        .ok_or_else::<Box<ClaimError>, _>(|| {
+            ClaimError("Invalid size".to_owned()).into()
+        })?;
 
-    let height = claims.iter().map(|c| c.rect.bottom())
+    let height = claims
+        .iter()
+        .map(|c| c.rect.bottom())
         .max()
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid size".to_owned()).into())?
-        ;
+        .ok_or_else::<Box<ClaimError>, _>(|| {
+            ClaimError("Invalid size".to_owned()).into()
+        })?;
 
     eprintln!("Size {}x{}", width, height);
 
@@ -94,15 +99,10 @@ fn part1(s: &str) -> Result<usize> {
         mark(claim, &mut grid);
     }
 
-    let result =
-        grid.iter()
-            .map(|row| {
-                row.iter()
-                    .filter(|v| **v >= 2)
-                    .count()
-            })
-            .sum()
-            ;
+    let result = grid
+        .iter()
+        .map(|row| row.iter().filter(|v| **v >= 2).count())
+        .sum();
 
     eprintln!("total square inches {}", result);
 
@@ -112,24 +112,30 @@ fn part1(s: &str) -> Result<usize> {
 fn part2(s: &str) -> Result<i32> {
     let regex = regex::Regex::new(r"#(\d+)\s+@\s+(\d+),(\d+):\s+(\d+)x(\d+)")?;
 
-    let claims: Result<Vec<Claim>> = s.lines()
+    let claims: Result<Vec<Claim>> = s
+        .lines()
         .map(|s| s.trim())
         .filter(|s| s.len() > 0)
         .map(|s| parse_claim(s, &regex))
-        .collect()
-        ;
+        .collect();
 
     let claims = claims?;
 
-    let width = claims.iter().map(|c| c.rect.right())
+    let width = claims
+        .iter()
+        .map(|c| c.rect.right())
         .max()
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid size".to_owned()).into())?
-        ;
+        .ok_or_else::<Box<ClaimError>, _>(|| {
+            ClaimError("Invalid size".to_owned()).into()
+        })?;
 
-    let height = claims.iter().map(|c| c.rect.bottom())
+    let height = claims
+        .iter()
+        .map(|c| c.rect.bottom())
         .max()
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid size".to_owned()).into())?
-        ;
+        .ok_or_else::<Box<ClaimError>, _>(|| {
+            ClaimError("Invalid size".to_owned()).into()
+        })?;
 
     eprintln!("Size {}x{}", width, height);
 
@@ -160,8 +166,9 @@ fn display_grid(grid: &Grid<i32>) -> Result<()> {
                 s.push('#');
             } else {
                 let c = std::char::from_digit(*col as u32, 10)
-                    .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid value".to_owned()).into())?
-                    ;
+                    .ok_or_else::<Box<ClaimError>, _>(|| {
+                        ClaimError("Invalid value".to_owned()).into()
+                    })?;
                 s.push(c);
             }
         }
@@ -191,48 +198,62 @@ fn is_only_claimer(claim: &Claim, grid: &Grid<i32>) -> bool {
     true
 }
 
-fn parse_claim(s: &str, re: &regex::Regex) -> StdResult<Claim, Box<std::error::Error>> {
-    let caps = re.captures(s)
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid capture".to_owned()).into())?;
+fn parse_claim(
+    s: &str,
+    re: &regex::Regex,
+) -> StdResult<Claim, Box<std::error::Error>> {
+    let caps = re.captures(s).ok_or_else::<Box<ClaimError>, _>(|| {
+        ClaimError("Invalid capture".to_owned()).into()
+    })?;
 
     let id = caps
         .get(1)
         .and_then(|v| v.as_str().parse::<i32>().ok())
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid id".to_owned()).into())?;
+        .ok_or_else::<Box<ClaimError>, _>(|| {
+            ClaimError("Invalid id".to_owned()).into()
+        })?;
         ;
 
     let left = caps
         .get(2)
         .and_then(|v| v.as_str().parse::<i32>().ok())
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid left".to_owned()).into())?;
+        .ok_or_else::<Box<ClaimError>, _>(|| {
+            ClaimError("Invalid left".to_owned()).into()
+        })?;
         ;
 
     let top = caps
         .get(3)
         .and_then(|v| v.as_str().parse::<i32>().ok())
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid top".to_owned()).into())?;
+        .ok_or_else::<Box<ClaimError>, _>(|| {
+            ClaimError("Invalid top".to_owned()).into()
+        })?;
         ;
 
     let width = caps
         .get(4)
         .and_then(|v| v.as_str().parse::<i32>().ok())
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid width".to_owned()).into())?;
+        .ok_or_else::<Box<ClaimError>, _>(|| {
+            ClaimError("Invalid width".to_owned()).into()
+        })?;
         ;
 
     let height = caps
         .get(5)
         .and_then(|v| v.as_str().parse::<i32>().ok())
-        .ok_or_else::<Box<ClaimError>, _>(|| ClaimError("Invalid height".to_owned()).into())?;
+        .ok_or_else::<Box<ClaimError>, _>(|| {
+            ClaimError("Invalid height".to_owned()).into()
+        })?;
         ;
 
     let rect = Rect {
-        left, top, width, height
+        left,
+        top,
+        width,
+        height,
     };
 
-    Ok(Claim {
-        id,
-        rect,
-    })
+    Ok(Claim { id, rect })
 }
 
 #[cfg(test)]
