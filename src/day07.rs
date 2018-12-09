@@ -27,20 +27,17 @@ fn get_steps(s: &str) -> Result<Vec<Step>> {
         .unwrap();
     }
 
-    let steps = s
-        .lines()
-        .map(|line| {
-            let caps = RE
-                .captures(line)
-                .ok_or_else(|| CustomError("Invalid captures".to_owned()))?;
+    s.lines()
+     .map(|line| {
+         let caps = RE
+             .captures(line)
+             .ok_or_else(|| CustomError("Invalid captures".to_owned()))?;
 
-            let first: String = aoc::get_value(&caps, 1)?;
-            let second: String = aoc::get_value(&caps, 2)?;
-            Ok(Step { first, second })
-        })
-        .collect();
-
-    steps
+         let first: String = aoc::get_value(&caps, 1)?;
+         let second: String = aoc::get_value(&caps, 2)?;
+         Ok(Step { first, second })
+     })
+     .collect()
 }
 
 fn pop_front(tree: &mut BTreeSet<String>) -> Option<String> {
@@ -66,13 +63,13 @@ fn part1(s: &str) -> Result<String> {
         seconds.insert(step.second.clone());
         {
             let entry =
-                map.entry(step.first.clone()).or_insert_with(|| Vec::new());
+                map.entry(step.first.clone()).or_insert_with(Vec::new);
             entry.push(step.second.clone());
         }
         {
             let entry = prereqs
                 .entry(step.second.clone())
-                .or_insert_with(|| Vec::new());
+                .or_insert_with(Vec::new);
             entry.push(step.first.clone());
         }
     }
@@ -93,25 +90,22 @@ fn part1(s: &str) -> Result<String> {
 
         completed.push(node.clone());
 
-        match map.get(&node) {
-            Some(after) => {
-                for aft in after.iter() {
-                    match prereqs.get(aft) {
-                        Some(reqs) => {
-                            let all_completed =
-                                reqs.iter().all(|v| completed.contains(v));
+        if let Some(after) = map.get(&node) {
+            for aft in after.iter() {
+                match prereqs.get(aft) {
+                    Some(reqs) => {
+                        let all_completed =
+                            reqs.iter().all(|v| completed.contains(v));
 
-                            if all_completed {
-                                work_queue.insert(aft.to_string());
-                            }
-                        }
-                        None => {
+                        if all_completed {
                             work_queue.insert(aft.to_string());
                         }
                     }
+                    None => {
+                        work_queue.insert(aft.to_string());
+                    }
                 }
             }
-            None => {}
         }
     }
 
@@ -144,13 +138,13 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
         seconds.insert(step.second.clone());
         {
             let entry =
-                map.entry(step.first.clone()).or_insert_with(|| Vec::new());
+                map.entry(step.first.clone()).or_insert_with(Vec::new);
             entry.push(step.second.clone());
         }
         {
             let entry = prereqs
                 .entry(step.second.clone())
-                .or_insert_with(|| Vec::new());
+                .or_insert_with(Vec::new);
             entry.push(step.first.clone());
         }
     }
@@ -175,7 +169,6 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
     let mut tick = 0;
 
     let mut workers = (0..nr_workers)
-        .into_iter()
         .map(|i| Work {
             id: i,
             ..Default::default()
@@ -184,10 +177,7 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
 
     fn workers_working(workers: &[Work]) -> bool {
         workers.iter().any(|v| {
-            if let Some(_) = v.target {
-                return true;
-            }
-            false
+            v.target.is_some()
         })
     }
 

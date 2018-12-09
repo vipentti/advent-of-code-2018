@@ -28,8 +28,6 @@ impl error::Error for ClaimError {
 
 use aoc::Result;
 
-type Grid<T> = Vec<Vec<T>>;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Claim {
     id: i32,
@@ -69,7 +67,7 @@ fn part1(s: &str) -> Result<usize> {
     let claims: Result<Vec<Claim>> = s
         .lines()
         .map(|s| s.trim())
-        .filter(|s| s.len() > 0)
+        .filter(|s| !s.is_empty())
         .map(|s| parse_claim(s, &regex))
         .collect();
 
@@ -115,7 +113,7 @@ fn part2(s: &str) -> Result<i32> {
     let claims: Result<Vec<Claim>> = s
         .lines()
         .map(|s| s.trim())
-        .filter(|s| s.len() > 0)
+        .filter(|s| !s.is_empty())
         .map(|s| parse_claim(s, &regex))
         .collect();
 
@@ -156,7 +154,7 @@ fn part2(s: &str) -> Result<i32> {
 }
 
 #[allow(dead_code)]
-fn display_grid(grid: &Grid<i32>) -> Result<()> {
+fn display_grid(grid: &Vec<Vec<i32>>) -> Result<()> {
     for row in grid.iter() {
         let mut s = String::new();
         for col in row.iter() {
@@ -177,18 +175,18 @@ fn display_grid(grid: &Grid<i32>) -> Result<()> {
     Ok(())
 }
 
-fn mark(claim: &Claim, grid: &mut Grid<i32>) {
+fn mark(claim: &Claim, grid: &mut Vec<Vec<i32>>) {
     for y in claim.rect.top..claim.rect.bottom() {
-        let row = grid.get_mut(y as usize).expect(&format!("row: {}", y));
+        let row = grid.get_mut(y as usize).unwrap();
         for x in claim.rect.left..claim.rect.right() {
             row[x as usize] += 1;
         }
     }
 }
 
-fn is_only_claimer(claim: &Claim, grid: &Grid<i32>) -> bool {
+fn is_only_claimer(claim: &Claim, grid: &Vec<Vec<i32>>) -> bool {
     for y in claim.rect.top..claim.rect.bottom() {
-        let row = grid.get(y as usize).expect(&format!("row: {}", y));
+        let row = grid.get(y as usize).unwrap();
         for x in claim.rect.left..claim.rect.right() {
             if row[x as usize] > 1 {
                 return false;

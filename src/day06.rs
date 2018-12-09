@@ -157,7 +157,7 @@ fn part1(s: &str) -> Result<usize> {
     update_grid(&mut grid, &coords)?;
 
     let r =
-        count_grid1(&mut grid, (size_x - 1) as usize, (size_y - 1) as usize)?;
+        count_grid1(&grid, (size_x - 1) as usize, (size_y - 1) as usize)?;
 
     eprintln!("part1: {:?}", r);
 
@@ -199,14 +199,16 @@ fn update_grid(grid: &mut Grid<Cell>, coords: &[Point]) -> Result<()> {
     Ok(())
 }
 
-fn count_grid2(
-    grid: &Grid<Cell>,
+fn count_grid2<T>(
+    grid: &[T],
     coords: &[Point],
     limit: usize,
-) -> Result<usize> {
+) -> Result<usize>
+    where T: AsRef<[Cell]>
+{
     let mut total = 0;
     for (y, row) in grid.iter().enumerate() {
-        for (x, _) in row.iter().enumerate() {
+        for (x, _) in row.as_ref().iter().enumerate() {
             let pt: Point = (x, y).into();
 
             let all: usize = coords.iter().map(|c| pt.distance_from(c)).sum();
@@ -220,14 +222,16 @@ fn count_grid2(
     Ok(total)
 }
 
-fn count_grid1(
-    grid: &mut Grid<Cell>,
+fn count_grid1<T>(
+    grid: &[T],
     max_x: usize,
     max_y: usize,
-) -> Result<usize> {
+) -> Result<usize>
+    where T: AsRef<[Cell]>
+{
     let mut map = HashMap::new();
     for (y, row) in grid.iter().enumerate() {
-        for (x, col) in row.iter().enumerate() {
+        for (x, col) in row.as_ref().iter().enumerate() {
             if let Some(id) = col.id() {
                 if x == 0 || y == 0 || x == max_x || y == max_y {
                     *map.entry(id).or_insert_with(|| 0) = i32::min_value();
@@ -253,7 +257,7 @@ fn count_grid1(
 }
 
 #[allow(dead_code)]
-fn display_grid(grid: &Grid<Cell>) -> Result<()> {
+fn display_grid(grid: &[Vec<Cell>]) -> Result<()> {
     for row in grid.iter() {
         let mut s = String::new();
         for col in row.iter() {

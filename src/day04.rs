@@ -199,17 +199,13 @@ fn gather(events: &[LogEvent]) -> Result<(i32, i32)> {
     for event in events {
         match event.event {
             EventType::ShiftStart(id) => {
-                if event.timestamp.hour > 0 {
-                    next_guard = id;
-                } else {
-                    next_guard = id;
-                }
+                next_guard = id;
             }
             EventType::WakeUp => {
                 sleeping_end = event.timestamp.minute;
 
                 map.entry(guard)
-                    .or_insert_with(|| Vec::new())
+                    .or_insert_with(Vec::new)
                     .push(Sleeping {
                         start: sleeping_start,
                         end: sleeping_end,

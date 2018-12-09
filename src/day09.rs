@@ -301,7 +301,7 @@ fn show_marbles(current_index: NodeId, marbles: &List, player: Option<u32>) {
     if let Some(p) = player {
         output.push_str(&format!("[{:^3}]", p));
     } else {
-        output.push_str(&format!("[ - ]"));
+        output.push_str("[ - ]");
     }
 
     let mut iter = marbles.iter();
@@ -330,28 +330,24 @@ fn place_marble(current: &mut usize, marbles: &mut List, current_index: &mut Nod
         *current_index = marbles.insert_after(*current_index, *current);
     } else if marbles.len() == 2 {
         *current_index = marbles.insert_after(marbles.next_right(*current_index), *current);
-    } else {
-        if *current % 23 == 0 {
-            let mut wrapped_index = *current_index;
+    } else if *current % 23 == 0 {
+        let mut wrapped_index = *current_index;
 
-            for _ in 0..7 {
-                wrapped_index = marbles.next_left(wrapped_index);
-            }
-
-            let new_current = marbles.next_right(wrapped_index);
-
-            let item = marbles.remove(wrapped_index);
-
-            player.marbles.push(*current);
-            player.marbles.push(item.value);
-
-            *current_index = new_current;
-
-        } else {
-            *current_index = marbles.insert_after(marbles.next_right(*current_index), *current);
+        for _ in 0..7 {
+            wrapped_index = marbles.next_left(wrapped_index);
         }
-    }
 
+        let new_current = marbles.next_right(wrapped_index);
+
+        let item = marbles.remove(wrapped_index);
+
+        player.marbles.push(*current);
+        player.marbles.push(item.value);
+
+        *current_index = new_current;
+    } else {
+        *current_index = marbles.insert_after(marbles.next_right(*current_index), *current);
+    }
     *current += 1;
 }
 

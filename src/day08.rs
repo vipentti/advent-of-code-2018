@@ -88,7 +88,7 @@ fn main() -> Result<()> {
 
 fn part1(s: &str) -> Result<usize> {
 
-    let values: Result<VecDeque<u32>> = s.split(" ")
+    let values: Result<VecDeque<u32>> = s.split(' ')
         .map(|v| v.parse::<u32>().map_err(|err| err.into()))
         .collect();
 
@@ -108,7 +108,7 @@ fn part1(s: &str) -> Result<usize> {
 }
 
 fn part2(s: &str) -> Result<usize> {
-    let values: Result<VecDeque<u32>> = s.split(" ")
+    let values: Result<VecDeque<u32>> = s.split(' ')
         .map(|v| v.parse::<u32>().map_err(|err| err.into()))
         .collect();
 
