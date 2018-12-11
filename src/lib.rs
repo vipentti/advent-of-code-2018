@@ -10,7 +10,7 @@ pub fn get_value<'a, T: std::str::FromStr>(
     index: usize,
 ) -> std::result::Result<T, CustomError> {
     caps.get(index)
-        .and_then(|v| v.as_str().parse::<T>().ok())
+        .and_then(|v| v.as_str().trim().parse::<T>().ok())
         .ok_or_else::<CustomError, _>(|| {
             CustomError(format!("Invalid {}", index))
         })
@@ -56,4 +56,16 @@ pub fn read_input() -> Result<String> {
     file.read_to_string(&mut s)?;
 
     Ok(s.trim().to_owned())
+}
+
+/// Reads the input from input/<day>.txt
+/// Trims excess whitespace
+pub fn read_file(file_name: &str) -> Result<String> {
+    let mut s = String::new();
+
+    let mut file = File::open(file_name)?;
+
+    file.read_to_string(&mut s)?;
+
+    Ok(s)
 }
