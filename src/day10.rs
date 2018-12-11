@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::convert::From;
 use std::str::FromStr;
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{BTreeMap};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Default)]
 struct Vector2 {
@@ -129,16 +129,12 @@ struct Grid<T: fmt::Display + Clone + Default> {
 
 struct VirtualGrid {
     values: BTreeMap<Vector2, char>,
-    width: usize,
-    height: usize,
 }
 
 impl VirtualGrid {
-    pub fn new_with(width: usize, height: usize) -> Self {
+    pub fn new_with() -> Self {
         VirtualGrid {
             values: BTreeMap::new(),
-            width,
-            height,
         }
     }
 
@@ -150,8 +146,8 @@ impl VirtualGrid {
         self.values.insert(point, '#');
     }
 
-    pub fn get(&self, index: &Vector2) -> Option<&char> {
-        self.values.get(index)
+    pub fn get(&self, index: Vector2) -> Option<&char> {
+        self.values.get(&index)
     }
 
     pub fn get_keys(&self) -> Vec<Vector2> {
@@ -195,14 +191,6 @@ impl<T: fmt::Display + Clone + Default> Grid<T> {
         }
     }
 
-    pub fn reset(&mut self) {
-        for row in self.grid.iter_mut() {
-            *row = self.init.clone();
-            // for col in row.iter_mut() {
-            // }
-        }
-    }
-
     pub fn as_string(&self) -> String {
         let mut fin = String::new();
 
@@ -228,24 +216,15 @@ impl<T: fmt::Display + Clone + Default> Grid<T> {
 
         fin
     }
-
-    pub fn get(&self, index: Vector2) -> Option<&T> {
-        let i = index.y as usize * self.width + index.x as usize;
-        self.grid.get(i)
-    }
-
-    pub fn get_mut(&mut self, index: Vector2) -> Option<&mut T> {
-        let i = index.y as usize * self.width + index.x as usize;
-        self.grid.get_mut(i)
-    }
 }
 
+#[allow(dead_code)]
 fn debug_grid(orig: &[Vector2]) {
     if orig.is_empty() {
         return;
     }
 
-    let mut points: Vec<_> = orig.iter().cloned().collect();
+    let mut points: Vec<_> = orig.to_vec();
 
     let (min_x, min_y, max_x, max_y) = get_size_from(&points[..]).unwrap();
     let size_x = (max_x - min_x).abs() as usize + 1;
@@ -340,28 +319,25 @@ impl LetterMap {
         }
     }
 
-    pub fn contains(&self, grid: &VirtualGrid) -> bool {
+    pub fn get_match(&self, grid: &VirtualGrid) -> Option<String> {
         let mut positions = grid.get_keys();
-
         let mut out = String::new();
-
         let mut map = BTreeMap::new();
 
-        'outer: loop {
-            let mut any_found = false;
+        loop {
             let mut possible_match = BTreeMap::new();
 
-            if let Some((first, rest)) = positions.split_first().map(|(v, r)| (v.clone(), r.to_vec())) {
+            if let Some((first, rest)) = positions.split_first().map(|(v, r)| (*v, r.to_vec())) {
 
                 for (k, vs) in self.data.iter() {
                     for list in vs.iter() {
                         let transformed: Vec<_> = list.iter()
                             .cloned()
-                            .map(|c| c + first.clone())
+                            .map(|c| c + first)
                             .collect();
 
                         let all_chars = transformed.iter()
-                            .map(|pos| grid.get(&pos))
+                            .map(|pos| grid.get(*pos))
                             .all(|c| match c {
                                 Some(ch) => *ch == '#',
                                 None => false,
@@ -381,8 +357,8 @@ impl LetterMap {
                     .max_by_key(|(_, v)| v.len());
 
                 if let Some((k, values)) = max {
-                    eprintln!("Found match {} {:?}", k, values);
-                    map.insert(first.clone(), *k);
+                    eprintln!("Best match {} {:?}", k, first);
+                    map.insert(first, *k);
                     positions = rest.iter()
                         .filter(|&v| !values.contains(v))
                         .cloned()
@@ -397,94 +373,16 @@ impl LetterMap {
             } else {
                 break;
             }
-
-            /*
-
-            for (k, vs) in self.data.iter() {
-                for list in vs.iter() {
-
-                    let new_pos = {
-                        let mut new_stuff = positions.clone();
-                        for pos in positions.iter() {
-                            let transformed: Vec<_> = list.iter()
-                                .cloned()
-                                .map(|c| c + pos.clone())
-                                .collect();
-
-                            let all_chars = transformed.iter()
-                                .map(|pos| grid.get(&pos))
-                                .all(|c| match c {
-                                    Some(ch) => *ch == '#',
-                                    None => false,
-                                });
-
-                            if all_chars {
-                                any_found = true;
-                                eprintln!("Found match {} {:?} {:?}", k, pos, list);
-
-                                map.insert(*pos, *k);
-
-                                possible_match.insert(*k, transformed.clone());
-
-                                out.push(*k);
-                                let before = positions.len();
-
-                                new_stuff = positions.iter()
-                                    .filter(|v| !transformed.contains(v))
-                                    .cloned()
-                                    .collect();
-
-                                let after = new_stuff.len();
-
-                                eprintln!("{} -> {}", before, after);
-
-                                break;
-                            }
-                        }
-                        new_stuff
-                    };
-
-                    positions = new_pos;
-                }
-            }
-
-            if !any_found {
-                break;
-            }
-            */
         }
 
         if !out.is_empty() {
             debug_grid(&positions[..]);
             eprintln!("{:?}", map);
             eprintln!("{}", out);
-            true
+            Some(out)
         } else {
-            false
+            None
         }
-    }
-
-    pub fn matches(&self, pos: &Vector2, grid: &VirtualGrid) -> Option<char> {
-
-        for (k, vs) in self.data.iter() {
-            for list in vs.iter() {
-                let all_chars = list.iter()
-                    .cloned()
-                    .map(|c| c + pos.clone())
-                    .map(|pos| grid.get(&pos))
-                    .all(|c| match c {
-                        Some(ch) => *ch == '#',
-                        None => false,
-                    });
-
-                if all_chars {
-                    eprintln!("Found match {} {:?} {:?}", k, pos, list);
-                    return Some(*k);
-                }
-            }
-        }
-
-        None
     }
 }
 
@@ -563,7 +461,7 @@ fn read_letters() -> Result<LetterMap> {
 
     // Normalize the values from absolute units
     // to relative units to the first point
-    for (k, values) in map.iter_mut() {
+    for (_, values) in map.iter_mut() {
         for list in values.iter_mut() {
             let first = list.first().cloned().unwrap();
 
@@ -596,9 +494,7 @@ fn part1(s: &str, max_ticks: i32) -> Result<String> {
     eprintln!("{}x{}", min_x, min_y);
     eprintln!("{}x{}", max_x, max_y);
 
-    // let mut grid = vec![vec!['.'; size_x]; size_y];
-    // let mut grid = Grid::new_with('.', size_x, size_y);
-    let mut grid = VirtualGrid::new_with(size_x, size_y);
+    let mut grid = VirtualGrid::new_with();
 
     // Normalize the coordinates from -X -> +X to 0..
     for light in lights.iter_mut() {
@@ -607,12 +503,7 @@ fn part1(s: &str, max_ticks: i32) -> Result<String> {
 
     for light in &lights {
         grid.set(light.position);
-        // grid[light.position] = '#';
     }
-
-    // let fin = grid.as_string();
-
-    // eprintln!("{}", fin);
 
     let mut out = String::new();
 
@@ -623,25 +514,13 @@ fn part1(s: &str, max_ticks: i32) -> Result<String> {
 
         for light in lights.iter_mut() {
             light.position += light.velocity;
-            // grid[light.position] = '#';
             grid.set(light.position);
         }
 
-        let mut found = false;
-
-        if letters.contains(&grid) {
-            found = true;
-        }
-
-        // for light in lights.iter() {
-        //     if let Some(letter) = letters.matches(&light.position, &grid) {
-        //         out.push(letter);
-        //         found = true;
-        //     }
-        // }
-
-        if found {
+        if let Some(res) = letters.get_match(&grid) {
+            out = res;
             eprintln!("TICK: {}", tick);
+
             let fin = grid.as_string();
 
             // Seconds start from 1
