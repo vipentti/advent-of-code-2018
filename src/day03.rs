@@ -154,7 +154,7 @@ fn part2(s: &str) -> Result<i32> {
 }
 
 #[allow(dead_code)]
-fn display_grid(grid: &Vec<Vec<i32>>) -> Result<()> {
+fn display_grid(grid: &[Vec<i32>]) -> Result<()> {
     for row in grid.iter() {
         let mut s = String::new();
         for col in row.iter() {
@@ -177,16 +177,16 @@ fn display_grid(grid: &Vec<Vec<i32>>) -> Result<()> {
 
 fn mark(claim: &Claim, grid: &mut Vec<Vec<i32>>) {
     for y in claim.rect.top..claim.rect.bottom() {
-        let row = grid.get_mut(y as usize).unwrap();
+        let row = &mut grid[y as usize];
         for x in claim.rect.left..claim.rect.right() {
             row[x as usize] += 1;
         }
     }
 }
 
-fn is_only_claimer(claim: &Claim, grid: &Vec<Vec<i32>>) -> bool {
+fn is_only_claimer(claim: &Claim, grid: &[Vec<i32>]) -> bool {
     for y in claim.rect.top..claim.rect.bottom() {
-        let row = grid.get(y as usize).unwrap();
+        let row = &grid[y as usize];
         for x in claim.rect.left..claim.rect.right() {
             if row[x as usize] > 1 {
                 return false;
