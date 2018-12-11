@@ -17,6 +17,7 @@ fn main() -> Result<()> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Default)]
 struct Grid {
     data: Vec<i32>,
+    sums: Vec<i32>,
     offset: usize,
     width: usize,
     height: usize,
@@ -56,6 +57,7 @@ impl Grid {
     fn new_with(serial: i32) -> Self {
         let mut grid = Grid {
             data: vec![0; 300 * 300],
+            sums: vec![0; 300 * 300],
             offset: 1,
             width: 300,
             height: 300,
@@ -73,8 +75,12 @@ impl Grid {
                 power_level -= 5;
 
                 grid[(x, y)] = power_level;
+                let index = grid.to_index((x, y).into());
+                grid.sums[index] = power_level;
             }
         }
+
+        grid.calculate_summed_area();
 
         grid
     }
@@ -91,14 +97,74 @@ impl Grid {
             let mut row = String::new();
             for x in (self.offset as i32)..=(self.width as i32) {
                 let val = self[(x, y)];
-                row.push_str(&format!("{:^3}", val));
+                row.push_str(&format!("{:^8}", val));
             }
 
             out.push_str(&row);
             out.push('\n');
         }
+        out.push('\n');
+
+
+        for y in (self.offset as i32)..=(self.height as i32) {
+            let mut row = String::new();
+            for x in (self.offset as i32)..=(self.width as i32) {
+                let index = self.to_index((x, y).into());
+                // let val = self[(x, y)];
+                let val = self.sums[index];
+                row.push_str(&format!("{:^8}", val));
+            }
+
+            out.push_str(&row);
+            out.push('\n');
+        }
+        out.push('\n');
 
         out
+    }
+
+    fn calculate_summed_area(&mut self) {
+
+        fn get_value(pt: (i32, i32), data: &[i32], offset: i32, width: i32, _height: i32) -> i32 {
+            if pt.0 < offset || pt.1 < offset {
+                0
+            } else {
+                let index = (pt.1 - offset) * width + (pt.0 - offset);
+                let index = index as usize;
+
+                if index < data.len() {
+                    data[index]
+                } else {
+                    0
+                }
+            }
+        }
+
+        for y in (self.offset as i32)..=(self.height as i32) {
+            for x in (self.offset as i32)..=(self.width as i32) {
+                let index = self.to_index((x, y).into());
+                let current = self.data[index];
+                let left = get_value((x - 1, y), &self.sums, self.offset as i32, self.width as i32, self.height as i32);
+                let top = get_value((x, y - 1), &self.sums, self.offset as i32, self.width as i32, self.height as i32);
+                let corner = get_value((x - 1, y - 1), &self.sums, self.offset as i32, self.width as i32, self.height as i32);
+
+                self.sums[index] = current + left + top - corner;
+            }
+        }
+    }
+
+    fn summed_value(&self, pt: (i32, i32)) -> i32 {
+        if pt.0 < self.offset as i32 || pt.1 < self.offset as i32 {
+            return 0;
+        }
+
+        let index = self.to_index(pt.into());
+
+        if index < self.sums.len() {
+            self.sums[index]
+        } else {
+            0
+        }
     }
 
     fn find_region(&self, size: i32) -> Option<(Vector2, i32)> {
@@ -113,19 +179,17 @@ impl Grid {
         for y in off..=(height - size) {
             for x in off..=(width - size) {
 
-                let mut total = 0;
+                let a = self.summed_value((x, y));
+                let b = self.summed_value((x + size, y));
+                let c = self.summed_value((x, y + size));
+                let d = self.summed_value((x + size, y + size));
 
-                for y_inc in 0..size {
-                    for x_inc in 0..size {
-                        let val = self[(x + x_inc, y + y_inc)];
-
-                        total += val;
-                    }
-                }
+                let total = d - b - c + a;
 
                 if total >= current_max {
                     current_max = total;
-                    current_point = (x, y).into();
+                    // TODO(villep): Fix this so it doesn't require +1
+                    current_point = (x + 1, y + 1).into();
                 }
             }
         }
@@ -163,8 +227,7 @@ impl Grid {
 fn part1(serial: i32) -> Result<Vector2> {
     let grid = Grid::new_with(serial);
 
-
-    if let Some((pt, max)) = grid.find_region(3) {
+    if let Some((pt, max)) = grid.find_rgion(3) {
         eprintln!("part1_max: {}", max);
         eprintln!("part1_point: {:?}", pt);
         return Ok(pt);
