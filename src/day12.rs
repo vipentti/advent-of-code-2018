@@ -11,7 +11,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-type State = BTreeMap<i32, Pot>;
+type State = BTreeMap<i64, PotState>;
 
 type Rules = BTreeMap<[PotState; 5], PotState>;
 
@@ -29,7 +29,7 @@ fn read_from(s: &str) -> Result<(State, Rules)> {
                 _ => false,
             })
             .map(|(ind, ch)| match ch {
-                '#' => (ind as i32, Pot::plant(ind as i32)),
+                '#' => (ind as i64, PotState::Plant),
                 _ => unreachable!(),
             })
             .collect();
@@ -73,11 +73,11 @@ fn read_from(s: &str) -> Result<(State, Rules)> {
     Ok((pots, rules))
 }
 
-fn get_state(id: i32, state: &State) -> PotState {
-    state.get(&id).cloned().unwrap_or_default().state
+fn get_state(id: i64, state: &State) -> PotState {
+    state.get(&id).cloned().unwrap_or_default()
 }
 
-fn advance(state: State, rules: &Rules) -> State {
+fn advance(state: &State, rules: &Rules) -> State {
     let mut new_state: State = BTreeMap::new();
 
     let orig_min_id = state.keys().min().unwrap();
@@ -98,7 +98,7 @@ fn advance(state: State, rules: &Rules) -> State {
         let next_state = rules.get(&rule_state).cloned().unwrap_or_default();
 
         if next_state == PotState::Plant {
-            new_state.insert(id, Pot::new(id, next_state));
+            new_state.insert(id, next_state);
         }
     }
 
@@ -106,7 +106,7 @@ fn advance(state: State, rules: &Rules) -> State {
     new_state
 }
 
-fn visualize_generation_with(gen: i32, state: &State, min: i32, max: i32) {
+fn visualize_generation_with(gen: i64, state: &State, min: i64, max: i64) {
     let mut out = String::new();
 
     for id in (min - 1)..=(max + 1) {
@@ -118,7 +118,7 @@ fn visualize_generation_with(gen: i32, state: &State, min: i32, max: i32) {
     eprintln!("{: >3} {}", gen, out);
 }
 
-fn show_rule(rule: &[PotState; 5], after: &PotState) -> String {
+fn show_rule(rule: [PotState; 5], after: PotState) -> String {
     let mut out = String::new();
 
     for r in rule.iter() {
@@ -133,16 +133,16 @@ fn show_rule(rule: &[PotState; 5], after: &PotState) -> String {
 
 fn visualize_rules(rules: &Rules) {
     for (rule, next) in rules.iter() {
-        let r = show_rule(rule, next);
+        let r = show_rule(*rule, *next);
         eprintln!("{}", r);
     }
 }
 
-fn count_ids(state: &State) -> i32 {
+fn count_ids(state: &State) -> i64 {
     let mut ids = 0;
 
     for (id, pot) in state.iter() {
-        if pot.state == PotState::Plant {
+        if *pot == PotState::Plant {
             ids += id;
         }
     }
@@ -150,7 +150,7 @@ fn count_ids(state: &State) -> i32 {
     ids
 }
 
-fn diff_ids(current: &State, prev: &State) -> i32 {
+fn diff_ids(current: &State, prev: &State) -> i64 {
     let mut diff = 0;
 
     for (cur, prv) in current.keys().zip(prev.keys()) {
@@ -162,7 +162,7 @@ fn diff_ids(current: &State, prev: &State) -> i32 {
     diff
 }
 
-fn part1(s: &str) -> Result<i32> {
+fn part1(s: &str) -> Result<i64> {
     let (orig_state, rules) = read_from(s)?;
     let mut state = orig_state;
 
@@ -180,7 +180,7 @@ fn part1(s: &str) -> Result<i32> {
 
     for _ in 0..20 {
         // visualize_generation(i, &state);
-        state = advance(state, &rules);
+        state = advance(&state, &rules);
         let min_id = state.keys().min().unwrap();
         let max_id = state.keys().max().unwrap();
 
@@ -191,16 +191,10 @@ fn part1(s: &str) -> Result<i32> {
     }
 
     for (id, state) in states.iter().enumerate() {
-        visualize_generation_with(id as i32, state, min, max);
+        visualize_generation_with(id as i64, state, min, max);
     }
 
-    let mut total_id = 0;
-
-    for (id, pot) in state {
-        if pot.state == PotState::Plant {
-            total_id += id;
-        }
-    }
+    let total_id = count_ids(&state);
 
     eprintln!("part1: {}", total_id);
 
@@ -225,13 +219,13 @@ fn part2(s: &str) -> Result<i64> {
 
     let mut found = false;
 
-    let mut increment = 0;
+    let mut increment: i64 = 0;
 
-    let mut last_id = 0;
+    let mut last_id: i64 = 0;
 
-    for id in 0..50_000_000_000usize {
+    for id in 0..50_000_000_000i64 {
         // visualize_generation(i, &state);
-        state = advance(state, &rules);
+        state = advance(&state, &rules);
         let min_id = state.keys().min().unwrap();
         let max_id = state.keys().max().unwrap();
 
@@ -260,14 +254,14 @@ fn part2(s: &str) -> Result<i64> {
     }
 
     for (id, state) in states.iter().enumerate() {
-        visualize_generation_with(id as i32, state, min, max);
+        visualize_generation_with(id as i64, state, min, max);
     }
 
     eprintln!("incr {} @ {}", increment, last_id);
 
-    let mut total_id: i64 = count_ids(&state) as i64;
+    let mut total_id: i64 = count_ids(&state);
 
-    total_id += (50_000_000_000i64 - last_id as i64) * increment as i64;
+    total_id += (50_000_000_000i64 - last_id) * increment;
 
     eprintln!("part2: {}", total_id);
 
@@ -282,7 +276,7 @@ enum PotState {
 }
 
 impl PotState {
-    fn as_char(&self) -> char {
+    fn as_char(self) -> char {
         match self {
             PotState::Empty => '.',
             PotState::Plant => '#',
@@ -304,55 +298,6 @@ impl Default for PotState {
         PotState::Empty
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-struct Pot {
-    id: i32,
-    state: PotState,
-}
-
-impl fmt::Display for Pot {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.state)
-    }
-}
-
-impl Default for Pot {
-    fn default() -> Self {
-        Pot::empty(0)
-    }
-}
-
-impl Pot {
-    pub fn as_char(&self) -> char {
-        match self.state {
-            PotState::Empty => '.',
-            PotState::Plant => '#',
-        }
-    }
-
-    pub fn new(id: i32, state: PotState) -> Self {
-        Pot {
-            id,
-            state,
-        }
-    }
-
-    pub fn plant(id: i32) -> Self {
-        Pot {
-            id,
-            state: PotState::Plant,
-        }
-    }
-
-    pub fn empty(id: i32) -> Self {
-        Pot {
-            id,
-            state: PotState::Empty,
-        }
-    }
-}
-
 
 #[cfg(test)]
 mod tests {
