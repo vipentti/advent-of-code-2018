@@ -1,5 +1,5 @@
-use aoc::{Result};
-use std::collections::{VecDeque};
+use aoc::Result;
+use std::collections::VecDeque;
 use std::fmt;
 
 type Meta = Vec<u32>;
@@ -12,8 +12,7 @@ struct Node {
 
 impl Node {
     pub fn sum(&self) -> u32 {
-        self.meta.iter()
-            .sum::<u32>()
+        self.meta.iter().sum::<u32>()
     }
 }
 
@@ -35,9 +34,7 @@ struct Tree {
 
 impl Tree {
     pub fn new() -> Self {
-        Tree {
-            nodes: Vec::new(),
-        }
+        Tree { nodes: Vec::new() }
     }
 
     pub fn new_node(&mut self, data: Meta) -> NodeId {
@@ -67,7 +64,6 @@ impl Tree {
         self.nodes.get_mut(id.index)
     }
 
-
     /// Iterate over all nodes in the arena in storage-order.
     ///
     /// Note that this iterator also contains removed elements, which can be
@@ -87,8 +83,8 @@ fn main() -> Result<()> {
 }
 
 fn part1(s: &str) -> Result<usize> {
-
-    let values: Result<VecDeque<u32>> = s.split(' ')
+    let values: Result<VecDeque<u32>> = s
+        .split(' ')
         .map(|v| v.parse::<u32>().map_err(|err| err.into()))
         .collect();
 
@@ -98,9 +94,7 @@ fn part1(s: &str) -> Result<usize> {
 
     read_tree(&mut tree, &mut values);
 
-    let result: u32 = tree.iter()
-        .map(|v| v.sum())
-        .sum();
+    let result: u32 = tree.iter().map(|v| v.sum()).sum();
 
     eprintln!("part1: {:?}", result);
 
@@ -108,7 +102,8 @@ fn part1(s: &str) -> Result<usize> {
 }
 
 fn part2(s: &str) -> Result<usize> {
-    let values: Result<VecDeque<u32>> = s.split(' ')
+    let values: Result<VecDeque<u32>> = s
+        .split(' ')
         .map(|v| v.parse::<u32>().map_err(|err| err.into()))
         .collect();
 
@@ -177,7 +172,6 @@ fn read_tree(tree: &mut Tree, values: &mut VecDeque<u32>) -> NodeId {
 
     node
 }
-
 
 #[cfg(test)]
 mod tests {

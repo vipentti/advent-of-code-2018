@@ -1,6 +1,6 @@
-use aoc::{Result, CustomError};
-use std::fmt;
+use aoc::{CustomError, Result};
 use std::collections::BTreeMap;
+use std::fmt;
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -23,8 +23,9 @@ fn read_from(s: &str) -> Result<(State, Rules)> {
     let mut pots: State = BTreeMap::new();
 
     if let Some(initial) = iter.next() {
-        pots = initial.char_indices()
-            .filter(|(_, ch) | match ch {
+        pots = initial
+            .char_indices()
+            .filter(|(_, ch)| match ch {
                 '#' => true,
                 _ => false,
             })
@@ -42,24 +43,23 @@ fn read_from(s: &str) -> Result<(State, Rules)> {
 
     for rule in iter {
         let mut state_arr: [PotState; 5] = Default::default();
-        let states: Vec<_> = rule.chars().take(5)
-            .map(|ch| {
-                match ch {
-                    '#' => PotState::Plant,
-                    _ => PotState::Empty,
-                }
+        let states: Vec<_> = rule
+            .chars()
+            .take(5)
+            .map(|ch| match ch {
+                '#' => PotState::Plant,
+                _ => PotState::Empty,
             })
             .collect();
 
         state_arr.copy_from_slice(&states[0..5]);
 
-        let after: Vec<_> = rule.chars()
+        let after: Vec<_> = rule
+            .chars()
             .skip(9)
-            .map(|ch| {
-                match ch {
-                    '#' => PotState::Plant,
-                    _ => PotState::Empty,
-                }
+            .map(|ch| match ch {
+                '#' => PotState::Plant,
+                _ => PotState::Empty,
             })
             .collect();
 
@@ -101,7 +101,6 @@ fn advance(state: &State, rules: &Rules) -> State {
             new_state.insert(id, next_state);
         }
     }
-
 
     new_state
 }
@@ -240,7 +239,6 @@ fn part2(s: &str) -> Result<i64> {
 
         last_id = id + 1;
 
-
         if found {
             break;
         }
@@ -250,7 +248,6 @@ fn part2(s: &str) -> Result<i64> {
             eprintln!("Stopped {}", id);
             found = true;
         }
-
     }
 
     for (id, state) in states.iter().enumerate() {
@@ -268,11 +265,10 @@ fn part2(s: &str) -> Result<i64> {
     Ok(total_id)
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 enum PotState {
     Empty,
-    Plant
+    Plant,
 }
 
 impl PotState {

@@ -204,13 +204,11 @@ fn gather(events: &[LogEvent]) -> Result<(i32, i32)> {
             EventType::WakeUp => {
                 sleeping_end = event.timestamp.minute;
 
-                map.entry(guard)
-                    .or_insert_with(Vec::new)
-                    .push(Sleeping {
-                        start: sleeping_start,
-                        end: sleeping_end,
-                        duration: sleeping_end - sleeping_start,
-                    });
+                map.entry(guard).or_insert_with(Vec::new).push(Sleeping {
+                    start: sleeping_start,
+                    end: sleeping_end,
+                    duration: sleeping_end - sleeping_start,
+                });
             }
             EventType::FallAsleep => {
                 sleeping_start = event.timestamp.minute;

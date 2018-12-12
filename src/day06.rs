@@ -156,8 +156,7 @@ fn part1(s: &str) -> Result<usize> {
 
     update_grid(&mut grid, &coords)?;
 
-    let r =
-        count_grid1(&grid, (size_x - 1) as usize, (size_y - 1) as usize)?;
+    let r = count_grid1(&grid, (size_x - 1) as usize, (size_y - 1) as usize)?;
 
     eprintln!("part1: {:?}", r);
 
@@ -199,12 +198,9 @@ fn update_grid(grid: &mut Grid<Cell>, coords: &[Point]) -> Result<()> {
     Ok(())
 }
 
-fn count_grid2<T>(
-    grid: &[T],
-    coords: &[Point],
-    limit: usize,
-) -> Result<usize>
-    where T: AsRef<[Cell]>
+fn count_grid2<T>(grid: &[T], coords: &[Point], limit: usize) -> Result<usize>
+where
+    T: AsRef<[Cell]>,
 {
     let mut total = 0;
     for (y, row) in grid.iter().enumerate() {
@@ -222,12 +218,9 @@ fn count_grid2<T>(
     Ok(total)
 }
 
-fn count_grid1<T>(
-    grid: &[T],
-    max_x: usize,
-    max_y: usize,
-) -> Result<usize>
-    where T: AsRef<[Cell]>
+fn count_grid1<T>(grid: &[T], max_x: usize, max_y: usize) -> Result<usize>
+where
+    T: AsRef<[Cell]>,
 {
     let mut map = HashMap::new();
     for (y, row) in grid.iter().enumerate() {

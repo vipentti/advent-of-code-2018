@@ -28,16 +28,16 @@ fn get_steps(s: &str) -> Result<Vec<Step>> {
     }
 
     s.lines()
-     .map(|line| {
-         let caps = RE
-             .captures(line)
-             .ok_or_else(|| CustomError("Invalid captures".to_owned()))?;
+        .map(|line| {
+            let caps = RE
+                .captures(line)
+                .ok_or_else(|| CustomError("Invalid captures".to_owned()))?;
 
-         let first: String = aoc::get_value(&caps, 1)?;
-         let second: String = aoc::get_value(&caps, 2)?;
-         Ok(Step { first, second })
-     })
-     .collect()
+            let first: String = aoc::get_value(&caps, 1)?;
+            let second: String = aoc::get_value(&caps, 2)?;
+            Ok(Step { first, second })
+        })
+        .collect()
 }
 
 fn pop_front(tree: &mut BTreeSet<String>) -> Option<String> {
@@ -62,14 +62,12 @@ fn part1(s: &str) -> Result<String> {
         firsts.insert(step.first.clone());
         seconds.insert(step.second.clone());
         {
-            let entry =
-                map.entry(step.first.clone()).or_insert_with(Vec::new);
+            let entry = map.entry(step.first.clone()).or_insert_with(Vec::new);
             entry.push(step.second.clone());
         }
         {
-            let entry = prereqs
-                .entry(step.second.clone())
-                .or_insert_with(Vec::new);
+            let entry =
+                prereqs.entry(step.second.clone()).or_insert_with(Vec::new);
             entry.push(step.first.clone());
         }
     }
@@ -137,14 +135,12 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
         firsts.insert(step.first.clone());
         seconds.insert(step.second.clone());
         {
-            let entry =
-                map.entry(step.first.clone()).or_insert_with(Vec::new);
+            let entry = map.entry(step.first.clone()).or_insert_with(Vec::new);
             entry.push(step.second.clone());
         }
         {
-            let entry = prereqs
-                .entry(step.second.clone())
-                .or_insert_with(Vec::new);
+            let entry =
+                prereqs.entry(step.second.clone()).or_insert_with(Vec::new);
             entry.push(step.first.clone());
         }
     }
@@ -176,9 +172,7 @@ fn part2(s: &str, min_time: usize, nr_workers: usize) -> Result<usize> {
         .collect::<Vec<_>>();
 
     fn workers_working(workers: &[Work]) -> bool {
-        workers.iter().any(|v| {
-            v.target.is_some()
-        })
+        workers.iter().any(|v| v.target.is_some())
     }
 
     fn add_work(

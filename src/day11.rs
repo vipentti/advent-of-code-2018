@@ -4,7 +4,8 @@ use std::ops::{Index, IndexMut};
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
 
-    let serial_number: i32 = s.parse::<i32>()
+    let serial_number: i32 = s
+        .parse::<i32>()
         .map_err::<Box<std::num::ParseIntError>, _>(|e| e.into())?;
 
     part1(serial_number)?;
@@ -12,7 +13,6 @@ fn main() -> Result<()> {
 
     Ok(())
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Default)]
 struct Grid {
@@ -86,7 +86,8 @@ impl Grid {
     }
 
     fn to_index(&self, vec: Vector2) -> usize {
-        (vec.y as usize - self.offset) * self.width + (vec.x as usize - self.offset)
+        (vec.y as usize - self.offset) * self.width
+            + (vec.x as usize - self.offset)
     }
 
     #[allow(dead_code)]
@@ -104,7 +105,6 @@ impl Grid {
             out.push('\n');
         }
         out.push('\n');
-
 
         for y in (self.offset as i32)..=(self.height as i32) {
             let mut row = String::new();
@@ -124,8 +124,13 @@ impl Grid {
     }
 
     fn calculate_summed_area(&mut self) {
-
-        fn get_value(pt: (i32, i32), data: &[i32], offset: i32, width: i32, _height: i32) -> i32 {
+        fn get_value(
+            pt: (i32, i32),
+            data: &[i32],
+            offset: i32,
+            width: i32,
+            _height: i32,
+        ) -> i32 {
             if pt.0 < offset || pt.1 < offset {
                 0
             } else {
@@ -144,9 +149,27 @@ impl Grid {
             for x in (self.offset as i32)..=(self.width as i32) {
                 let index = self.to_index((x, y).into());
                 let current = self.data[index];
-                let left = get_value((x - 1, y), &self.sums, self.offset as i32, self.width as i32, self.height as i32);
-                let top = get_value((x, y - 1), &self.sums, self.offset as i32, self.width as i32, self.height as i32);
-                let corner = get_value((x - 1, y - 1), &self.sums, self.offset as i32, self.width as i32, self.height as i32);
+                let left = get_value(
+                    (x - 1, y),
+                    &self.sums,
+                    self.offset as i32,
+                    self.width as i32,
+                    self.height as i32,
+                );
+                let top = get_value(
+                    (x, y - 1),
+                    &self.sums,
+                    self.offset as i32,
+                    self.width as i32,
+                    self.height as i32,
+                );
+                let corner = get_value(
+                    (x - 1, y - 1),
+                    &self.sums,
+                    self.offset as i32,
+                    self.width as i32,
+                    self.height as i32,
+                );
 
                 self.sums[index] = current + left + top - corner;
             }
@@ -178,7 +201,6 @@ impl Grid {
         // Region has to be fully inside
         for y in off..=(height - size) {
             for x in off..=(width - size) {
-
                 let a = self.summed_value((x, y));
                 let b = self.summed_value((x + size, y));
                 let c = self.summed_value((x, y + size));
@@ -237,7 +259,6 @@ fn part1(serial: i32) -> Result<Vector2> {
 }
 
 fn part2(serial: i32) -> Result<(i32, i32, i32)> {
-
     let grid = Grid::new_with(serial);
 
     if let Some((pt, max, size)) = grid.find_sized_region() {

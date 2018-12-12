@@ -1,11 +1,11 @@
 use regex;
+use std::convert::From;
 use std::env;
 use std::error;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
-use std::convert::From;
-use std::ops::{Add, Sub, AddAssign, SubAssign, Mul};
+use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
 pub fn get_value<'a, T: std::str::FromStr>(
     caps: &regex::Captures<'a>,
@@ -98,10 +98,7 @@ impl From<Vector2> for (i32, i32) {
 
 impl From<(i32, i32)> for Vector2 {
     fn from(v: (i32, i32)) -> Self {
-        Vector2 {
-            x: v.0,
-            y: v.1,
-        }
+        Vector2 { x: v.0, y: v.1 }
     }
 }
 

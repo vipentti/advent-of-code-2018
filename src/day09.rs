@@ -1,8 +1,8 @@
-use aoc::{Result, CustomError};
-use std::fmt;
+use aoc::{CustomError, Result};
 use lazy_static::lazy_static;
-use std::ops::{Index, IndexMut};
 use regex::Regex;
+use std::fmt;
+use std::ops::{Index, IndexMut};
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -103,7 +103,6 @@ impl List {
     }
 
     pub fn remove(&mut self, node: NodeId) -> Node {
-
         let left_index = self[node].left;
         let right_index = self[node].right;
 
@@ -121,9 +120,8 @@ impl List {
     }
 
     pub fn root(&self) -> Option<(usize, &Node)> {
-        let mut iter = self.nodes.iter()
-            .enumerate()
-            .filter(|(_, v)| !v.is_null());
+        let mut iter =
+            self.nodes.iter().enumerate().filter(|(_, v)| !v.is_null());
         iter.next()
     }
 
@@ -197,7 +195,6 @@ impl<'a> Iterator for NodeIter<'a> {
     }
 }
 
-
 // Just for convenience, so that we can type `self[i]` instead of `self.nodes[i]`.
 impl Index<NodeId> for List {
     type Output = Node;
@@ -228,8 +225,7 @@ struct Player {
 
 impl Player {
     fn score(&self) -> usize {
-        self.marbles.iter()
-            .sum()
+        self.marbles.iter().sum()
     }
 }
 
@@ -239,9 +235,9 @@ fn part1(s: &str) -> Result<usize> {
 
 fn part2(s: &str, multiplier: usize) -> Result<usize> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(
-            r"(\d+) players; last marble is worth (\d+) points.*"
-        ).unwrap();
+        static ref RE: Regex =
+            Regex::new(r"(\d+) players; last marble is worth (\d+) points.*")
+                .unwrap();
     }
 
     let caps = RE
@@ -260,17 +256,20 @@ fn part2(s: &str, multiplier: usize) -> Result<usize> {
     current_marble += 1;
 
     let mut players = (0..player_count)
-        .map(|i| {
-            Player {
-                id: i as u32 + 1,
-                marbles: Vec::new(),
-            }
+        .map(|i| Player {
+            id: i as u32 + 1,
+            marbles: Vec::new(),
         })
         .collect::<Vec<_>>();
 
     'game: loop {
         for player in players.iter_mut() {
-            place_marble(&mut current_marble, &mut marbles, &mut current_index, player);
+            place_marble(
+                &mut current_marble,
+                &mut marbles,
+                &mut current_index,
+                player,
+            );
 
             if current_marble > last_points {
                 break 'game;
@@ -282,8 +281,7 @@ fn part2(s: &str, multiplier: usize) -> Result<usize> {
         }
     }
 
-    let max = players.iter()
-        .max_by_key(|p| p.score());
+    let max = players.iter().max_by_key(|p| p.score());
 
     if let Some(player) = max {
         eprintln!("Winner {} score {}", player.id, player.score());
@@ -314,7 +312,7 @@ fn show_marbles(current_index: NodeId, marbles: &List, player: Option<u32>) {
         }
     }
 
-    for marble in  iter {
+    for marble in iter {
         if marble.index == current_index.index {
             output.push_str(&format!(" ({})", marble.value));
         } else {
@@ -325,11 +323,17 @@ fn show_marbles(current_index: NodeId, marbles: &List, player: Option<u32>) {
     eprintln!("{}", output);
 }
 
-fn place_marble(current: &mut usize, marbles: &mut List, current_index: &mut NodeId, player: &mut Player) {
+fn place_marble(
+    current: &mut usize,
+    marbles: &mut List,
+    current_index: &mut NodeId,
+    player: &mut Player,
+) {
     if marbles.len() == 1 {
         *current_index = marbles.insert_after(*current_index, *current);
     } else if marbles.len() == 2 {
-        *current_index = marbles.insert_after(marbles.next_right(*current_index), *current);
+        *current_index =
+            marbles.insert_after(marbles.next_right(*current_index), *current);
     } else if *current % 23 == 0 {
         let mut wrapped_index = *current_index;
 
@@ -346,11 +350,11 @@ fn place_marble(current: &mut usize, marbles: &mut List, current_index: &mut Nod
 
         *current_index = new_current;
     } else {
-        *current_index = marbles.insert_after(marbles.next_right(*current_index), *current);
+        *current_index =
+            marbles.insert_after(marbles.next_right(*current_index), *current);
     }
     *current += 1;
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -364,14 +368,7 @@ mod tests {
 21 players; last marble is worth 6111 points: high score is 54718
 30 players; last marble is worth 5807 points: high score is 37305
     ";
-    const SCORES: [usize; 6] = [
-        32,
-        8317,
-        146373,
-        2764,
-        54718,
-        37305
-    ];
+    const SCORES: [usize; 6] = [32, 8317, 146373, 2764, 54718, 37305];
     #[test]
     fn part1_example_input() {
         for (i, line) in INPUT.trim().lines().enumerate() {

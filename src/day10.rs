@@ -1,11 +1,11 @@
-use aoc::{Result, CustomError};
-use std::fmt;
-use std::ops::{Add, Sub, AddAssign, SubAssign, Mul, Index, IndexMut};
+use aoc::{CustomError, Result};
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::collections::BTreeMap;
 use std::convert::From;
+use std::fmt;
+use std::ops::{Add, AddAssign, Index, IndexMut, Mul, Sub, SubAssign};
 use std::str::FromStr;
-use std::collections::{BTreeMap};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Default)]
 struct Vector2 {
@@ -48,19 +48,13 @@ impl FromStr for Light {
         let position = (pos_x, pos_y).into();
         let velocity = (vel_x, vel_y).into();
 
-        Ok(Light {
-            position,
-            velocity,
-        })
+        Ok(Light { position, velocity })
     }
 }
 
 impl From<(i32, i32)> for Vector2 {
     fn from(v: (i32, i32)) -> Self {
-        Vector2 {
-            x: v.0,
-            y: v.1,
-        }
+        Vector2 { x: v.0, y: v.1 }
     }
 }
 
@@ -155,7 +149,6 @@ impl VirtualGrid {
     }
 
     pub fn as_string(&self) -> String {
-
         let mut keys: Vec<_> = self.values.keys().cloned().collect();
 
         let (min_x, min_y, max_x, max_y) = get_size_from(&keys[..]).unwrap();
@@ -267,24 +260,35 @@ impl<T: fmt::Display + Clone + Default> IndexMut<Vector2> for Grid<T> {
     }
 }
 
-fn get_size_from(points: &[Vector2]) -> Result<(i32, i32, i32, i32)>
-{
-    let min_x = points.iter().map(|c| c.x).min()
+fn get_size_from(points: &[Vector2]) -> Result<(i32, i32, i32, i32)> {
+    let min_x = points
+        .iter()
+        .map(|c| c.x)
+        .min()
         .ok_or_else::<Box<CustomError>, _>(|| {
             CustomError("Missing min_x".to_string()).into()
         })?;
 
-    let min_y = points.iter().map(|c| c.y).min()
+    let min_y = points
+        .iter()
+        .map(|c| c.y)
+        .min()
         .ok_or_else::<Box<CustomError>, _>(|| {
             CustomError("Missing min_y".to_string()).into()
         })?;
 
-    let max_x = points.iter().map(|c| c.x).max()
+    let max_x = points
+        .iter()
+        .map(|c| c.x)
+        .max()
         .ok_or_else::<Box<CustomError>, _>(|| {
             CustomError("Missing max_x".to_string()).into()
         })?;
 
-    let max_y = points.iter().map(|c| c.y).max()
+    let max_y = points
+        .iter()
+        .map(|c| c.y)
+        .max()
         .ok_or_else::<Box<CustomError>, _>(|| {
             CustomError("Missing max_y".to_string()).into()
         })?;
@@ -293,19 +297,12 @@ fn get_size_from(points: &[Vector2]) -> Result<(i32, i32, i32, i32)>
 }
 
 fn get_size(lights: &[Light], max_ticks: i32) -> Result<(i32, i32, i32, i32)> {
-    let mut points: Vec<Vector2> = lights
-        .iter()
-        .map(|c| c.position)
-        .collect();
+    let mut points: Vec<Vector2> = lights.iter().map(|c| c.position).collect();
 
-    points.extend(lights
-        .iter()
-        .map(|c| c.position + (c.velocity * max_ticks))
-    );
+    points.extend(lights.iter().map(|c| c.position + (c.velocity * max_ticks)));
 
     get_size_from(&points[..])
 }
-
 
 #[derive(Debug, Clone)]
 struct LetterMap {
@@ -314,9 +311,7 @@ struct LetterMap {
 
 impl LetterMap {
     pub fn new_from(data: BTreeMap<char, Vec<Vec<Vector2>>>) -> Self {
-        LetterMap {
-            data,
-        }
+        LetterMap { data }
     }
 
     pub fn get_match(&self, grid: &VirtualGrid) -> Option<String> {
@@ -327,16 +322,16 @@ impl LetterMap {
         loop {
             let mut possible_match = BTreeMap::new();
 
-            if let Some((first, rest)) = positions.split_first().map(|(v, r)| (*v, r.to_vec())) {
-
+            if let Some((first, rest)) =
+                positions.split_first().map(|(v, r)| (*v, r.to_vec()))
+            {
                 for (k, vs) in self.data.iter() {
                     for list in vs.iter() {
-                        let transformed: Vec<_> = list.iter()
-                            .cloned()
-                            .map(|c| c + first)
-                            .collect();
+                        let transformed: Vec<_> =
+                            list.iter().cloned().map(|c| c + first).collect();
 
-                        let all_chars = transformed.iter()
+                        let all_chars = transformed
+                            .iter()
                             .map(|pos| grid.get(*pos))
                             .all(|c| match c {
                                 Some(ch) => *ch == '#',
@@ -352,24 +347,22 @@ impl LetterMap {
                     }
                 }
 
-                let max = possible_match
-                    .iter()
-                    .max_by_key(|(_, v)| v.len());
+                let max = possible_match.iter().max_by_key(|(_, v)| v.len());
 
                 if let Some((k, values)) = max {
                     eprintln!("Best match {} {:?}", k, first);
                     map.insert(first, *k);
-                    positions = rest.iter()
+                    positions = rest
+                        .iter()
                         .filter(|&v| !values.contains(v))
                         .cloned()
                         .collect();
 
                     out.push(*k);
-                    // break 'outer;
+                // break 'outer;
                 } else {
                     positions = rest;
                 }
-
             } else {
                 break;
             }
@@ -396,23 +389,8 @@ fn read_letters() -> Result<LetterMap> {
     let mut letter_index = 0;
 
     let letters = vec![
-        'A',
-        'B',
-        'C',
-        'E',
-        'F',
-        'G',
-        'H',
-        'H',
-        'I',
-        'J',
-        'K',
-        'L',
-        'N',
-        'P',
-        'R',
-        'X',
-        'Z',
+        'A', 'B', 'C', 'E', 'F', 'G', 'H', 'H', 'I', 'J', 'K', 'L', 'N', 'P',
+        'R', 'X', 'Z',
     ];
 
     let mut map: BTreeMap<char, Vec<Vec<Vector2>>> = BTreeMap::new();
@@ -425,33 +403,30 @@ fn read_letters() -> Result<LetterMap> {
                 // eprintln!("vec {} {:?}", letters[letter_index], vec);
                 current += 1;
 
-                let e = map.entry(letter)
-                   .or_insert_with(|| vec![Vec::new()]);
+                let e = map.entry(letter).or_insert_with(|| vec![Vec::new()]);
 
                 if let Some(ref mut last) = e.last_mut() {
-                   last.push(vec);
+                    last.push(vec);
                 }
             }
 
-            '\n' => {
-                match chars.peek() {
-                    Some((_, '\n')) => {
-                        if letters[letter_index] == letters[letter_index + 1] {
-                            map.entry(letters[letter_index])
-                                .and_modify(|v| v.push(Vec::new()));
-                        }
+            '\n' => match chars.peek() {
+                Some((_, '\n')) => {
+                    if letters[letter_index] == letters[letter_index + 1] {
+                        map.entry(letters[letter_index])
+                            .and_modify(|v| v.push(Vec::new()));
+                    }
 
-                        letter_index += 1;
-                        line += 1;
-                        current = 0;
-                        chars.next();
-                    }
-                    _ => {
-                        line += 1;
-                        current = 0;
-                    }
+                    letter_index += 1;
+                    line += 1;
+                    current = 0;
+                    chars.next();
                 }
-            }
+                _ => {
+                    line += 1;
+                    current = 0;
+                }
+            },
 
             _ => {
                 current += 1;
@@ -479,7 +454,8 @@ fn read_letters() -> Result<LetterMap> {
 fn part1(s: &str, max_ticks: i32) -> Result<String> {
     let letters = read_letters()?;
 
-    let lights: Result<Vec<_>> = s.lines()
+    let lights: Result<Vec<_>> = s
+        .lines()
         .map(|v| v.parse::<Light>().map_err(|e| e.into()))
         .collect();
 
@@ -537,7 +513,6 @@ fn part1(s: &str, max_ticks: i32) -> Result<String> {
 
     Ok(out)
 }
-
 
 #[cfg(test)]
 mod tests {
