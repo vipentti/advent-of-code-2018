@@ -227,7 +227,7 @@ impl Grid {
 fn part1(serial: i32) -> Result<Vector2> {
     let grid = Grid::new_with(serial);
 
-    if let Some((pt, max)) = grid.find_rgion(3) {
+    if let Some((pt, max)) = grid.find_region(3) {
         eprintln!("part1_max: {}", max);
         eprintln!("part1_point: {:?}", pt);
         return Ok(pt);
