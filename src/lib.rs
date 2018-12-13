@@ -60,6 +60,23 @@ pub fn read_input() -> Result<String> {
     Ok(s.trim().to_owned())
 }
 
+pub fn read_input_untrimmed() -> Result<String> {
+    let mut s = String::new();
+
+    let exe_name = env::current_exe()?;
+
+    let name =
+        exe_name.file_stem().ok_or_else::<Box<CustomError>, _>(|| {
+            CustomError("Unable to get file_stem".to_owned()).into()
+        })?;
+
+    let mut file = File::open(format!("input/{}.txt", name.to_string_lossy()))?;
+
+    file.read_to_string(&mut s)?;
+
+    Ok(s)
+}
+
 /// Reads the input from input/<day>.txt
 pub fn read_file(file_name: &str) -> Result<String> {
     let mut s = String::new();
