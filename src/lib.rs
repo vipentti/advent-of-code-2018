@@ -94,7 +94,22 @@ pub struct Vector2 {
     pub y: i32,
 }
 
+impl Vector2 {
+    pub fn new(x: i32, y: i32) -> Self {
+        Vector2 {
+            x,
+            y,
+        }
+    }
+}
+
 impl fmt::Debug for Vector2 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+impl fmt::Display for Vector2 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({}, {})", self.x, self.y)
     }
@@ -119,6 +134,12 @@ impl From<(i32, i32)> for Vector2 {
     }
 }
 
+impl std::convert::From<(usize, usize)> for Vector2 {
+    fn from(v: (usize, usize)) -> Self {
+        Vector2 { x: v.0 as i32, y: v.1 as i32 }
+    }
+}
+
 impl Add for Vector2 {
     type Output = Vector2;
 
@@ -126,6 +147,17 @@ impl Add for Vector2 {
         Vector2 {
             x: self.x + other.x,
             y: self.y + other.y,
+        }
+    }
+}
+
+impl Add<(i32, i32)> for Vector2 {
+    type Output = Vector2;
+
+    fn add(self, other: (i32, i32)) -> Self::Output {
+        Vector2 {
+            x: self.x + other.0,
+            y: self.y + other.1,
         }
     }
 }
@@ -152,14 +184,37 @@ impl Sub for Vector2 {
     }
 }
 
+impl Sub<(i32, i32)> for Vector2 {
+    type Output = Vector2;
+
+    fn sub(self, other: (i32, i32)) -> Self::Output {
+        Vector2 {
+            x: self.x - other.0,
+            y: self.y - other.1,
+        }
+    }
+}
+
 impl SubAssign for Vector2 {
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
 
+impl SubAssign<(i32, i32)> for Vector2 {
+    fn sub_assign(&mut self, other: (i32, i32)) {
+        *self = *self - other;
+    }
+}
+
 impl AddAssign for Vector2 {
     fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
+}
+
+impl AddAssign<(i32, i32)> for Vector2 {
+    fn add_assign(&mut self, other: (i32, i32)) {
         *self = *self + other;
     }
 }
