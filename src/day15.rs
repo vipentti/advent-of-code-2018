@@ -2,7 +2,7 @@
 use aoc::{Result, CustomError};
 use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 type GenId = u32;
 
@@ -271,31 +271,42 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn part1(s: &str) -> Result<usize> {
+fn part1(s: &str) -> Result<i32> {
     let mut map = read_map(s)?;
 
     map.sort_entities();
     map.render();
 
 
-    let mut round = 0;
+    let mut round = 1;
 
     loop {
-        if map.update() || round >= 25 {
-            break;
-        }
-        map.sort_entities();
+        eprintln!("after of: {} round(s)", round - 1);
 
         map.render();
+
+        if map.update() || round >= 1000 {
+            break;
+        }
+
+        map.sort_entities();
+
 
         round += 1;
     }
 
-    eprintln!("End after {}", round);
+    eprintln!("End after {}", round - 1);
 
     map.render();
 
-    Ok(0)
+    let last_round = round as i32 - 1;
+
+    let total_hp = map.total_hp();
+
+    eprintln!("Round {} hp {} total {}", last_round, total_hp, last_round * total_hp);
+
+
+    Ok(last_round * total_hp)
 }
 
 fn manhattan_distance(a: &Vector2, b: &Vector2) -> usize {
@@ -390,6 +401,21 @@ impl Default for Tile {
     fn default() -> Self { Tile::Empty }
 }
 
+fn reconstruct_path(came_from: HashMap<Vector2, Vector2>, mut current: Vector2) -> Vec<Vector2> {
+    let mut path = vec![current];
+
+    while let Some(cur) = came_from.get(&current) {
+        current = *cur;
+        path.push(current);
+    }
+
+    path.pop();
+
+    path.reverse();
+
+    path
+}
+
 type EntityMap<T> = GenerationArray<T>;
 type Entity = Index;
 
@@ -452,6 +478,13 @@ impl World {
         }
     }
 
+    fn total_hp(&self) -> i32 {
+        self.health_components
+            .iter()
+            .filter(|hp| **hp > 0)
+            .sum()
+    }
+
 
     fn update(&mut self) -> bool {
 
@@ -464,6 +497,11 @@ impl World {
                 continue;
             }
 
+            if !self.any_enemies_alive(entity) {
+                eprintln!("{} found no enemies", entity.index);
+                return true;
+            }
+
             if let Some(target) = self.find_target_in_range(entity) {
                 self.entity_attack(entity, target);
                 empty = false;
@@ -472,17 +510,21 @@ impl World {
                 if !paths.is_empty() {
                     empty = false;
                 }
+
                 for (target, path) in paths.iter() {
                     eprintln!("{:?} -> {:?} {:?}", entity.index, target.index, path);
                 }
 
                 if let Some((target, path)) = paths.first() {
                     // Next to an enemy
-                    if path.len() == 1 {
-                        self.entity_attack(entity, *target);
-                    } else if !path.is_empty() {
+                    if !path.is_empty() {
                         // self.entity_move_towards(attacker, *target);
                         self.entity_move_on_path(entity, &path);
+
+                        if let Some(new_target) = self.find_target_in_range(entity) {
+                            self.entity_attack(entity, new_target);
+                            empty = false;
+                        }
                     }
                 }
             }
@@ -493,49 +535,6 @@ impl World {
             return true;
         }
 
-        // let entities_to_remove: Vec<_> = self.entities.iter()
-        //     .filter_map(|e| {
-        //         if let Some(hp) = self.health_components.get(*e) {
-        //             if *hp <= 0 {
-        //                 return Some(*e)
-        //             }
-        //         }
-        //         None
-        //     })
-        //     .collect();
-
-        // for remove in entities_to_remove {
-        //     self.remove_entity(remove);
-        // }
-
-
-        // for entity in self.entities.iter() {
-        //     if let Some(hp) = self.health_components.get(*entity) {
-        //         if *hp <= 0{
-
-        //         }
-        //     }
-        // }
-
-        // {
-        //     let entity_targets: Vec<_> = self.entities.iter()
-        //         .map(|v| (*v, self.find_target_paths(*v)))
-        //         .collect();
-
-        //     let all_empty = entity_targets.iter()
-        //         .all(|(_, t)| t.is_empty());
-
-        //     if all_empty {
-        //         return true;
-        //     }
-
-        //     for (attacker, targets) in entity_targets {
-        //         for (target, path) in targets.iter() {
-        //             eprintln!("{:?} -> {:?} {:?}", attacker.index, target.index, path);
-        //         }
-        //     }
-        // }
-
         false
     }
 
@@ -543,6 +542,22 @@ impl World {
         self.health_components.get(entity)
             .map(|hp| *hp > 0)
             .unwrap_or(false)
+    }
+
+    fn any_enemies_alive(&self, entity: Entity) -> bool {
+        if let Some(tp) = self.type_components.get(entity) {
+            let enemy_type = tp.enemy_type();
+
+            let possible_targets_count = self.entities.iter()
+                .filter(|&e| self.type_components.get(*e) == Some(&enemy_type))
+                .filter(|&e| self.position_components.get(*e).is_some())
+                .filter(|&e| self.health_components.get(*e).map(|hp| *hp > 0).unwrap_or(false))
+                .count();
+
+            possible_targets_count > 0
+        } else {
+            false
+        }
     }
 
     fn remove_entity(&mut self, entity: Entity) {
@@ -586,21 +601,39 @@ impl World {
         eprintln!("{}: {}", pref, self.entity_to_string(entity));
     }
 
-    fn find_path(&self, start: Vector2, end: Vector2) -> Option<Vec<Vector2>> {
-        fn reconstruct_path(came_from: HashMap<Vector2, Vector2>, mut current: Vector2) -> Vec<Vector2> {
-            let mut path = vec![current];
+    fn bfs(&self, start: Vector2, end: Vector2) -> Option<Vec<Vector2>> {
+        let mut q: VecDeque<Vector2> = VecDeque::new();
+        q.push_back(start);
 
-            while let Some(cur) = came_from.get(&current) {
-                current = *cur;
-                path.push(current);
+        let mut distances: HashMap<Vector2, usize> = HashMap::new();
+        distances.insert(start, 0);
+
+        let mut came_from: HashMap<Vector2, Vector2> = HashMap::new();
+
+        // came_from.insert(start, start);
+
+        while !q.is_empty() {
+            let current = q.pop_front().unwrap();
+
+            for neighbour in current.around().iter().filter(|p| self.is_free(**p) || **p == end) {
+                if !distances.contains_key(&neighbour) {
+                    q.push_back(*neighbour);
+                    distances.insert(*neighbour, 1 + distances.get(&current).unwrap());
+                    came_from.insert(*neighbour, current);
+                }
             }
-
-            path.pop();
-
-            path.reverse();
-
-            path
         }
+
+        if came_from.contains_key(&end) {
+            let mut path = reconstruct_path(came_from, end);
+            path.pop();
+            Some(path)
+        } else {
+            None
+        }
+    }
+
+    fn find_path(&self, start: Vector2, end: Vector2) -> Option<Vec<Vector2>> {
 
         fn heuristic(a: &Vector2, b: &Vector2) -> usize {
             let dx = (b.x - a.x).abs() as usize;
@@ -788,6 +821,23 @@ impl World {
         buf
     }
 
+    fn find_target_square(&self, entity: Entity) -> Option<Vector2> {
+        match (self.type_components.get(entity), self.position_components.get(entity)) {
+            (Some(my_type), Some(my_pos)) => {
+                let enemy_type = my_type.enemy_type();
+
+                let mut possible_targets: Vec<_> = self.entities.iter()
+                    .filter(|&e| self.type_components.get(*e) == Some(&enemy_type))
+                    .filter(|&e| self.position_components.get(*e).is_some())
+                    .map(|e| *e)
+                    .collect();
+
+                None
+            },
+            _ => None,
+        }
+    }
+
     fn find_target_paths(&self, entity: Entity) -> Vec<(Entity, Vec<Vector2>)> {
 
         match (self.type_components.get(entity), self.position_components.get(entity)) {
@@ -800,7 +850,7 @@ impl World {
                     .map(|e| *e)
                     .filter_map(|e| {
                         let pos = self.position_components.get(e).unwrap();
-                        let path = self.find_path(*my_pos, *pos);
+                        let path = self.bfs(*my_pos, *pos);
                         if let Some(path) = path {
                             Some((e, path))
                         } else {
@@ -813,11 +863,16 @@ impl World {
                 possible_targets.sort_by(|(a, adist), (b, bdist)| {
                     match adist.len().cmp(&bdist.len()) {
                         Ordering::Equal => {
-                            match adist.cmp(&bdist) {
+                            match adist.last().cmp(&bdist.last()) {
                                 Ordering::Equal => {
-                                    let a_pos = self.position_components.get(*a).unwrap();
-                                    let b_pos = self.position_components.get(*b).unwrap();
-                                    a_pos.cmp(&b_pos)
+                                    match adist.first().cmp(&bdist.first()) {
+                                        Ordering::Equal => {
+                                            let a_pos = self.position_components.get(*a).unwrap();
+                                            let b_pos = self.position_components.get(*b).unwrap();
+                                            a_pos.cmp(&b_pos)
+                                        },
+                                        other => other,
+                                    }
                                 },
                                 other => other,
                             }
@@ -1003,20 +1058,91 @@ mod tests {
 #######
         ";
 
-//         let path0 = r"
-// #######
-// #.....#
-// #...EG#
-// #.#.#.#
-// #..G#.#
-// #.....#
-// #######
-//         ";
+        let example2 = r"
+#######
+#E..EG#
+#.#G.E#
+#E.##E#
+#G..#.#
+#..E#.#
+#######
+        ";
 
-        // assert_eq!(37 * 982, part1(path0.trim()).unwrap());
-        assert_eq!(37 * 982, part1(example0.trim()).unwrap());
+        let example3 = r"
+#########
+#G......#
+#.E.#...#
+#..##..G#
+#...##..#
+#...#...#
+#.G...G.#
+#.....G.#
+#########
+        ";
+        let example4 = r"
+#######
+#.E...#
+#.#..G#
+#.###.#
+#E#G#G#
+#...#G#
+#######
+        ";
+
+        assert_eq!(54 * 536, part1(example4.trim()).unwrap());
+        assert_eq!(20 * 937, part1(example3.trim()).unwrap());
+        assert_eq!(47 * 590, part1(example0.trim()).unwrap());
         assert_eq!(37 * 982, part1(example1.trim()).unwrap());
-        assert_eq!(37 * 982, part1(movement.trim()).unwrap());
+        assert_eq!(18 * 1543, part1(movement.trim()).unwrap());
+        assert_eq!(46 * 859, part1(example2.trim()).unwrap());
+    }
+
+    #[test]
+    fn more_tests() {
+        let sample1 = r"
+#######
+#######
+#.E..G#
+#.#####
+#G#####
+#######
+#######
+        ";
+
+        let sample2 = r"
+####
+#GG#
+#.E#
+####
+        ";
+
+        let sample3 = r"
+########
+#..E..G#
+#G######
+########
+        ";
+
+        let targets = r"
+#######
+#E..G.#
+#...#.#
+#.G.#G#
+#######
+        ";
+        let sample4 = r"
+#######
+#..E#G#
+#.....#
+#G#...#
+#######
+        ";
+        assert_eq!(33 * 501, part1(sample4.trim()).unwrap());
+        assert_eq!(33 * 501, part1(targets.trim()).unwrap());
+        assert_eq!(34 * 301, part1(sample1.trim()).unwrap());
+        assert_eq!(33 * 301, part1(sample2.trim()).unwrap());
+        assert_eq!(34 * 301, part1(sample3.trim()).unwrap());
+
     }
 
 }
