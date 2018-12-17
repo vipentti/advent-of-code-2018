@@ -266,13 +266,13 @@ fn main() -> Result<()> {
     let s = aoc::read_input()?;
 
     part1(&s)?;
-    // part2(&s)?;
+    part2(&s)?;
 
     Ok(())
 }
 
 fn part1(s: &str) -> Result<i32> {
-    let mut map = read_map(s)?;
+    let mut map = read_map(s, 3)?;
 
     map.sort_entities();
     map.render();
@@ -283,9 +283,9 @@ fn part1(s: &str) -> Result<i32> {
     loop {
         eprintln!("after of: {} round(s)", round - 1);
 
-        map.render();
+        // map.render();
 
-        if map.update() || round >= 1000 {
+        if map.update(false) || round >= 1000 {
             break;
         }
 
@@ -303,17 +303,59 @@ fn part1(s: &str) -> Result<i32> {
 
     let total_hp = map.total_hp();
 
-    eprintln!("Round {} hp {} total {}", last_round, total_hp, last_round * total_hp);
-
+    eprintln!("part1: Round {} hp {} total {}", last_round, total_hp, last_round * total_hp);
 
     Ok(last_round * total_hp)
+}
+
+fn part2(s: &str) -> Result<i32> {
+
+
+    let mut ap: i32 = 4;
+
+    let (round, hp) = loop {
+        let mut map = read_map(s, ap)?;
+        map.sort_entities();
+        let mut round = 1;
+
+        loop {
+            // eprintln!("after of: {} round(s)", round - 1);
+
+            // map.render();
+
+            if map.update(true) || round >= 1000 {
+                break;
+            }
+
+            map.sort_entities();
+
+            round += 1;
+        }
+
+        if !map.elf_died {
+            map.render();
+            eprintln!("SUCCESS {}", ap);
+
+            break (round, map.total_hp());
+        }
+
+        ap += 1;
+    };
+
+    let last_round = round as i32 - 1;
+    let total_hp = hp;
+
+    eprintln!("part2: Round {} hp {} total {}", last_round, total_hp, last_round * total_hp);
+
+    Ok(last_round * total_hp)
+
 }
 
 fn manhattan_distance(a: &Vector2, b: &Vector2) -> usize {
     ((b.x - a.x).abs() + (b.y - a.y).abs()) as usize
 }
 
-fn read_map(s: &str) -> Result<World> {
+fn read_map(s: &str, elf_ap: i32) -> Result<World> {
 
     let mut world = World::empty();
 
@@ -335,7 +377,7 @@ fn read_map(s: &str) -> Result<World> {
                     // TODO Elf
                     row.push(Tile::Empty);
 
-                    world.add_elf_at((ind, linenr).into());
+                    world.add_elf_at((ind, linenr).into(), elf_ap);
                 },
                 _ => return Err(CustomError("Invalid map".into()).into()),
             }
@@ -431,6 +473,8 @@ struct World {
     attack_components: EntityMap<i32>,
 
     entities: Vec<Entity>,
+
+    elf_died: bool,
 }
 
 fn index(w: usize, v: Vector2) -> usize {
@@ -454,6 +498,7 @@ impl World {
             health_components: Default::default(),
             attack_components: Default::default(),
             entities: Default::default(),
+            elf_died: false,
         }
     }
 
@@ -485,14 +530,25 @@ impl World {
             .sum()
     }
 
+    // fn increment_elf_power(&mut self) {
+    //     let elves = self.entities.iter()
+    //         .filter(|e| self.type_components.get(*e) == Some(&EntityType::Elf))
+    //         ;
+    // }
 
-    fn update(&mut self) -> bool {
+
+    fn update(&mut self, early: bool) -> bool {
 
         let entities: Vec<_> = self.entities.iter().cloned().collect();
 
         for entity in entities {
             if !self.is_alive(entity) {
                 continue;
+            }
+
+            if early && self.elf_died {
+                eprintln!("Elf died");
+                return true;
             }
 
             if !self.any_enemies_alive(entity) {
@@ -505,9 +561,9 @@ impl World {
             } else {
                 let paths = self.find_target_paths(entity);
 
-                for (target, path) in paths.iter() {
-                    eprintln!("{:?} -> {:?} {:?}", entity.index, target.index, path);
-                }
+                // for (target, path) in paths.iter() {
+                //     eprintln!("{:?} -> {:?} {:?}", entity.index, target.index, path);
+                // }
 
                 if let Some((_, path)) = paths.first() {
                     // Next to an enemy
@@ -556,6 +612,10 @@ impl World {
 
             self.allocator.deallocate(entity);
 
+            if let Some(EntityType::Elf) = self.type_components.get(entity) {
+                self.elf_died = true;
+            }
+
             self.position_components.remove(entity);
             self.type_components.remove(entity);
             self.attack_components.remove(entity);
@@ -575,11 +635,11 @@ impl World {
         self.entities.push(entity);
     }
 
-    fn add_elf_at(&mut self, pos: Vector2) {
+    fn add_elf_at(&mut self, pos: Vector2, ap: i32) {
         let entity = self.allocator.allocate();
 
         self.position_components.set(entity, pos);
-        self.attack_components.set(entity, 3);
+        self.attack_components.set(entity, ap);
         self.health_components.set(entity, 200);
         self.type_components.set(entity, EntityType::Elf);
 
@@ -607,7 +667,7 @@ impl World {
             let current = q.pop_front().unwrap();
 
             if candidates.iter().position(|p| *p == current).is_some() {
-                eprintln!("{} Found candidate {}", start, current);
+                // eprintln!("{} Found candidate {}", start, current);
                 possible.insert(current);
                 break;
             }
@@ -628,7 +688,7 @@ impl World {
 
         possible.extend(q.into_iter());
 
-        eprintln!("{} pos {:?}", start, possible);
+        // eprintln!("{} pos {:?}", start, possible);
 
         let candidate_set: BTreeSet<_> = candidates.iter().cloned().collect();
 
@@ -647,24 +707,10 @@ impl World {
 
         });
 
-        // intersection.sort();
-
-
-        // let distances: Vec<_> = intersection.iter().cloned()
-        //     .filter_map(|n| distances.get(n))
-        //     .collect();
-
-        eprintln!("{} inters {:?}", start, intersection);
+        // eprintln!("{} inters {:?}", start, intersection);
 
         intersection.first()
             .map(|p| **p)
-        // if came_from.contains_key(&end) {
-        //     let mut path = reconstruct_path(came_from, end);
-        //     path.pop();
-        //     Some(path)
-        // } else {
-        //     None
-        // }
     }
 
     fn bfs(&self, start: Vector2, end: Vector2) -> Option<Vec<Vector2>> {
@@ -793,7 +839,7 @@ impl World {
             (Some(attack), Some(hp)) => {
                 *hp -= attack;
 
-                if *hp < 0 {
+                if *hp <= 0 {
                     self.debug_entity("died", target);
                     self.remove_entity(target);
                 }
@@ -846,67 +892,20 @@ impl World {
                     .collect()
                     ;
 
-                eprintln!("Finding path for {} {}", entity.index, my_pos);
+                // eprintln!("Finding path for {} {}", entity.index, my_pos);
 
                 if let Some(target_node) = self.find_best_node(*my_pos, &available_squares) {
                     // eprintln!("Target {}", target_node);
                     let my_available = self.available_squares(entity);
 
                     if let Some(actual_node) = self.find_best_node(target_node, &my_available) {
-                        eprintln!("{} moving to {} target {}", entity.index, actual_node, target_node);
+                        // eprintln!("{} moving to {} target {}", entity.index, actual_node, target_node);
                         // eprintln!("Movement {}", actual_node);
                         return vec![
                             ( entity, vec![actual_node],)
                         ];
                     }
                 }
-
-                // let mut possible_targets: Vec<_> = self.entities.iter()
-                //     .filter(|&e| self.type_components.get(*e) == Some(&enemy_type))
-                //     .filter(|&e| self.position_components.get(*e).is_some())
-                //     .map(|e| *e)
-                //     .filter_map(|e| {
-                //         let squares = self.available_squares(e);
-
-                //         if let Some(path) = self.bfs_sq(*my_pos, &squares) {
-                //             Some((e, path))
-                //         } else {
-                //             None
-                //         }
-
-                //         // let pos = self.position_components.get(e).unwrap();
-                //         // let path = self.bfs(*my_pos, *pos);
-                //         // if let Some(path) = path {
-                //         //     Some((e, path))
-                //         // } else {
-                //         //     None
-                //         // }
-                //     })
-                //     .collect()
-                //     ;
-
-                // possible_targets.sort_by(|(a, adist), (b, bdist)| {
-                //     match adist.len().cmp(&bdist.len()) {
-                //         Ordering::Equal => {
-                //             match adist.last().cmp(&bdist.last()) {
-                //                 Ordering::Equal => {
-                //                     match adist.first().cmp(&bdist.first()) {
-                //                         Ordering::Equal => {
-                //                             let a_pos = self.position_components.get(*a).unwrap();
-                //                             let b_pos = self.position_components.get(*b).unwrap();
-                //                             a_pos.cmp(&b_pos)
-                //                         },
-                //                         other => other,
-                //                     }
-                //                 },
-                //                 other => other,
-                //             }
-                //         },
-                //         other => other,
-                //     }
-                // });
-
-                // possible_targets
 
                 vec![]
 
@@ -980,10 +979,6 @@ impl World {
 
         std::mem::replace(&mut self.entities, entities);
     }
-
-    // make_getter!(Vector2, get_position, position_components);
-    // make_getter!(i32, get_health, health_components);
-    // make_getter!(EntityType, get_type, type_components);
 
     fn debug_entities(&self) -> String {
         let mut output = String::new();
@@ -1174,4 +1169,52 @@ mod tests {
 
     }
 
+
+    #[test]
+    fn part2_example_input() {
+        let example1 = r"
+#######
+#.G...#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######
+        ";
+        let example2 = r"
+#######
+#E..EG#
+#.#G.E#
+#E.##E#
+#G..#.#
+#..E#.#
+#######
+        ";
+        let example3 = r"
+#######
+#E.G#.#
+#.#G..#
+#G.#.G#
+#G..#.#
+#...E.#
+#######
+        ";
+
+        let example5 = r"
+#########
+#G......#
+#.E.#...#
+#..##..G#
+#...##..#
+#...#...#
+#.G...G.#
+#.....G.#
+#########
+        ";
+        assert_eq!(29 * 172, part2(example1.trim()).unwrap());
+        assert_eq!(33 * 948, part2(example2.trim()).unwrap());
+        assert_eq!(37 * 94, part2(example3.trim()).unwrap());
+        assert_eq!(30 * 38, part2(example5.trim()).unwrap());
+
+    }
 }
