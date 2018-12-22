@@ -1,7 +1,7 @@
 #![allow(dead_code)]
-use aoc::{Result, Vector2, CustomError};
+use aoc::{Result, Vector2, CustomError, ToIndex};
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashSet, HashMap, VecDeque};
 use regex::Regex;
 use lazy_static::lazy_static;
 
@@ -16,36 +16,11 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-trait ToIndex {
-    fn to_index(self, width: usize) -> usize;
-}
-
-impl ToIndex for Vector2 {
-    fn to_index(self, width: usize) -> usize {
-        if self.y < 0 {
-            return usize::max_value();
-        }
-        self.y as usize * width + self.x as usize
-    }
-}
-
-impl ToIndex for (i32, i32) {
-    fn to_index(self, width: usize) -> usize {
-        self.1 as usize * width + self.0 as usize
-    }
-}
-
-impl ToIndex for (usize, usize) {
-    fn to_index(self, width: usize) -> usize {
-        self.1 * width + self.0
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 enum Direction {
     Down,
     Side,
-    Uo,
+    Up,
 }
 
 impl Default for Direction {
@@ -103,6 +78,13 @@ impl Grid {
             height,
         }
     }
+
+    fn count_water(&self) -> usize {
+        self.data.iter()
+            .filter(|&&v| v == Tile::Flow || v == Tile::Rest)
+            .count()
+    }
+
 
     fn render_to_string(&self) -> String {
         assert!(!self.data.is_empty());
@@ -197,11 +179,14 @@ impl<T: ToIndex> IndexMut<T> for Grid {
 fn part1(s: &str) -> Result<i32> {
     let mut clay_locations = read_clay_locations(s)?;
     let mut spring: Vector2 = Vector2::new(500, 0);
+    let (_, c_min_y, _, _ ) = get_size_from(&clay_locations)?;
 
     let mut temp_locations = clay_locations.clone();
     temp_locations.push(spring);
 
-    let (min_x, min_y, max_x, max_y) = get_size_from(&temp_locations)?;
+    let (mut min_x, min_y, max_x, max_y) = get_size_from(&temp_locations)?;
+    min_x -= 1;
+
 
     let size_x = (max_x - min_x).abs() as usize + 1;
     let size_y = (max_y - min_y).abs() as usize + 1;
@@ -209,6 +194,7 @@ fn part1(s: &str) -> Result<i32> {
     eprintln!("Size {}x{}", size_x, size_y);
     eprintln!("Min {}x{}", min_x, min_y);
     eprintln!("Max {}x{}", max_x, max_y);
+    eprintln!("Clay {}", c_min_y);
 
     // Normalize the coordinates from -X -> +X to 0..
     for pos in clay_locations.iter_mut() {
@@ -228,40 +214,220 @@ fn part1(s: &str) -> Result<i32> {
 
     grid[spring] = Tile::Spring;
 
-    let mut waters: Vec<Vector2> = Vec::new();
-
-    let mut springs: Vec<Vector2> = Vec::new();
 
     // display_grid(&grid);
 
-    for i in 0..=1_000_000 {
-        eprintln!("springs {:?}", springs);
+    // for i in 0..=1_000_000 {
+    //     eprintln!("springs {:?}", springs);
 
-        if !produce_water_2(spring, &mut grid, &mut waters, &mut springs) {
-            eprintln!("Tick {}", i);
-            // display_grid(&grid);
-            break;
-        }
-        display_grid(&grid);
-    }
+    //     if !produce_water_2(spring, &mut grid, &mut waters, &mut springs) {
+    //         eprintln!("Tick {}", i);
+    //         // display_grid(&grid);
+    //         break;
+    //     }
+    //     display_grid(&grid);
+    // }
+    let waters = run_stream(spring, &mut grid);
 
     display_grid(&grid);
 
-    let set: HashSet<_> = waters.into_iter().collect();
-    eprintln!("Water {}", set.len());
+    eprintln!("count {}", grid.count_water());
+
+
+    let keys = waters.keys()
+        .filter(|&&v| v.y >= c_min_y)
+        .count();
+    eprintln!("Water {}", waters.keys().count());
+    eprintln!("Water keys {}", keys);
+
+    let resting = waters.iter()
+        .filter(|(v, t)| v.y >= c_min_y && **t == Tile::Rest)
+        .count();
+    eprintln!("Resting keys {}", resting);
 
     Ok(0)
 }
 
-fn run_stream(spring: Vector2, grid: &mut Grid) {
-    let mut vec = VecDeque::new();
-    vec.push((spring, Direction::Down));
+type Range = std::ops::RangeInclusive<i32>;
 
+fn run_stream(spring: Vector2, grid: &mut Grid) -> HashMap<Vector2, Tile> {
+    let mut q = VecDeque::new();
+    q.push_back((spring, Direction::Down));
+    let mut waters: HashMap<Vector2, Tile> = HashMap::new();
+
+    while !q.is_empty() {
+        let (mut pos, dir) = q.pop_front().unwrap();
+
+        // eprintln!("{} {:?}", pos, dir);
+
+        match dir {
+            Direction::Down => {
+
+                while pos.y + 1 < grid.height as i32
+                    && !is_resting(pos.down(), grid)
+                {
+                    pos = pos.down();
+                    waters.insert(pos, Tile::Flow);
+                    // grid[pos] = Tile::Flow;
+                    grid.set(pos, Tile::Flow);
+                }
+
+                if is_at_edge(pos, grid) {
+                    continue;
+                }
+
+                if !q.contains(&(pos, Direction::Up)) {
+                    q.push_back((pos, Direction::Up));
+                }
+            }
+
+            Direction::Up => {
+                // eprintln!("up {}", pos);
+                while let Some(range) = find_walls(pos, grid, floor_below(pos, grid)) {
+
+                    // eprintln!("Container {} {:?}", pos, range );
+
+                    range.clone().for_each(|x| {
+                        let tp = (x, pos.y).into();
+                        waters.insert(tp, Tile::Rest);
+                        // grid[tp] = Tile::Rest;
+                        grid.set(tp, Tile::Rest);
+                    });
+
+                    pos = pos.up();
+                }
+                // eprintln!("up {}", pos);
+
+                waters.insert(pos, Tile::Flow);
+                grid.set(pos, Tile::Flow);
+                //grid[pos] = Tile::Flow;
+                //pos = pos.up();
+
+                if !q.contains(&(pos, Direction::Side)) {
+                    q.push_back((pos, Direction::Side));
+                }
+            },
+            Direction::Side => {
+                let floor = floor_below(pos, grid);
+
+                if floor.is_none() {
+                    continue;
+                }
+
+                let floor = floor.unwrap();
+
+                // eprintln!("hre;{:?}", floor);
+
+                let mut min_pos = pos;
+                let (start, end) = (*floor.start(), *floor.end());
+
+                while min_pos.x - 1 >= start - 1 && is_inside(min_pos, grid)  && !is_resting(min_pos.left(), grid) {
+                    min_pos = min_pos.left();
+                    waters.insert(min_pos, Tile::Flow);
+                    grid.set(min_pos, Tile::Flow);
+                }
+
+                // eprintln!("min {}", min_pos);
+
+                let mut max_pos = pos;
+
+                // eprintln!("end {}", end + 1);
+                // eprintln!("rr {}", max_pos.x + 1);
+
+                while max_pos.x + 1 <= end + 1 && is_inside(max_pos, grid) && !is_resting(max_pos.right(), grid) {
+                    max_pos = max_pos.right();
+                    waters.insert(max_pos, Tile::Flow);
+                    grid.set(max_pos, Tile::Flow);
+                }
+
+                // eprintln!("max {}", max_pos);
+
+
+                if min_pos.x < start && !q.contains(&(min_pos, Direction::Down)) {
+                    q.push_back((min_pos, Direction::Down));
+                }
+                if max_pos.x > end && !q.contains(&(max_pos, Direction::Down)) {
+                    q.push_back((max_pos, Direction::Down));
+                }
+            },
+            _ => {
+            }
+        }
+    }
+
+    waters
+}
+
+fn find_walls(v: Vector2, grid: &Grid, floor: Option<Range>) -> Option<Range> {
+    // eprintln!("Here {} {:?} {:?}", v, grid.get(v), floor);
+    // if !is(v.down(), Tile::Clay, grid) {
+    if !is_resting(v.down(), grid) {
+        return None;
+    }
+
+    if floor.is_none() {
+        return None;
+    }
+    // eprintln!("Here2 {} {:?} {:?}", v, grid.get(v), floor);
+
+    let floor = floor.unwrap();
+
+    let mut min_pos = v;
+
+    while !is_resting(min_pos.left(), grid) && min_pos.x >= 0 {
+        min_pos = min_pos.left();
+    }
+    // eprintln!("Here3 {} {:?} {:?}", v, grid.get(v), floor);
+
+    let mut max_pos = v;
+
+    while !is_resting(max_pos.right(), grid) && max_pos.x < grid.width as i32 {
+        max_pos = max_pos.right();
+    }
+
+    // eprintln!("{} {}", min_pos, max_pos);
+
+    //Some(floor)
+    if min_pos.x >= *floor.start() && max_pos.x <= *floor.end() {
+            return Some(min_pos.x..=max_pos.x);
+        }
+
+    None
+}
+
+
+fn floor_below(v: Vector2, grid: &Grid) -> Option<Range>{
+    let below = v.down();
+
+    if is_resting(below, grid) {
+
+        let mut min_pos = below;
+
+        while is_resting(min_pos.left(), grid) {
+            min_pos = min_pos.left();
+        }
+
+        let mut max_pos = below;
+
+        while is_resting(max_pos.right(), grid) {
+            max_pos = max_pos.right();
+        }
+
+
+        return Some(min_pos.x..=max_pos.x);
+    }
+
+    None
 }
 
 fn is_inside(v: Vector2, grid: &Grid) -> bool {
     (v.x >= 0 && v.x < grid.width as i32)
     && (v.y >= 0 && v.y < grid.height as i32)
+}
+
+fn is_resting(v: Vector2, grid: &Grid) -> bool {
+    grid.get(v) == Some(&Tile::Rest)
+    || grid.get(v) == Some(&Tile::Clay)
 }
 
 fn is_tile(v: Vector2, expected: Tile, grid: &Grid) -> bool {
@@ -383,407 +549,6 @@ fn is_at_edge(start: Vector2, grid: &Grid) -> bool {
     }
 
     false
-}
-
-fn next_free_loc(start: Vector2, spring: Vector2, grid: &Grid) -> Option<(Direction, Vector2)> {
-
-    if let Some(Tile::Sand) = grid.get(start.down()) {
-        let above = grid.get_i(start.up());
-        let below = grid.get_i(start.down().down());
-        if above != Tile::Flow && below == Tile::Sand {
-            eprintln!("{} Above {:?} below {:?}", start, above, below);
-            return Some((Direction::Down, start.down()));
-        }
-        // if is_not(start.up(), Tile::Flow, grid) && is(start.down().down(), Tile::Sand, grid)
-        // {
-        // }
-        return Some((Direction::None, start.down()));
-    }
-
-    if let Some(Tile::Sand) = grid.get(start.left()) {
-        if !is_at_edge(start, grid) {
-            return Some((Direction::Left, start.left()));
-        }
-    }
-
-    if let Some(Tile::Sand) = grid.get(start.right()) {
-        if !is_at_edge(start, grid) {
-            return Some((Direction::Right, start.right()));
-        }
-    }
-
-    // Start going down from spring
-
-    let mut loc = spring.down();
-
-    while is_not(loc.down(), Tile::Clay, grid)
-        && (is(loc.left(), Tile::Sand, grid) || is(loc.right(), Tile::Sand, grid))
-    {
-        loc = loc.down();
-    }
-
-    loc = loc.up();
-
-    eprintln!("Spring {}", loc);
-
-    if let Some(Tile::Sand) = grid.get(loc.left()) {
-        if !is_at_edge(loc, grid) {
-            return Some((Direction::Left, loc.left()));
-        }
-    }
-
-    if let Some(Tile::Sand) = grid.get(loc.right()) {
-        if !is_at_edge(loc, grid) {
-            return Some((Direction::Right, loc.right()));
-        }
-    }
-
-    None
-}
-
-fn next_free_location(start: Vector2, grid: &Grid) -> Option<Vector2> {
-    if let Some(Tile::Sand) = grid.get(start.down()) {
-        return Some(start.down());
-    }
-
-    // If we cannot go down, we'll try going left first
-    // And filling all the locations on that side first
-
-    if let Some(Tile::Sand) = grid.get(start.left()) {
-        if !is_at_edge(start, grid) {
-            return Some(start.left());
-        }
-    }
-
-    // Clay on left, we must start backtracking
-    // First attempt going right as far as we can
-    if let Some(Tile::Clay) = grid.get(start.left()) {
-
-        let mut loc = start;
-        // eprintln!("Left clay {}", loc);
-
-        while is_not(loc.right(), Tile::Clay, grid) {
-            if let Some(Tile::Sand) = grid.get(loc.right()) {
-                if !is_at_edge(loc.right(), grid) {
-                    return Some(loc.right());
-                }
-            }
-
-            loc = loc.right();
-        }
-
-        // eprintln!("After left {}", loc);
-
-        // Attempt going up a row
-        if let Some(Tile::Flow) = grid.get(loc.up()) {
-            return next_free_location(loc.up(), grid);
-        }
-    }
-
-    if let Some(Tile::Sand) = grid.get(start.right()) {
-        if !is_at_edge(start, grid) {
-            return Some(start.right());
-        }
-    }
-
-    if let Some(Tile::Clay) = grid.get(start.right()) {
-
-
-        let mut loc = start;
-        // eprintln!("Right clay {}", loc);
-
-        // We have free space above us, find first
-        // free that goes to the left
-        if is(loc.up(), Tile::Sand, grid) {
-            loc = loc.up();
-            while is_not(loc.left(), Tile::Clay, grid) {
-                if let Some(Tile::Flow) = grid.get(loc.left()) {
-                    if let Some(Tile::Sand) = grid.get(loc.left().left()) {
-                        return Some(loc.left().left());
-                    }
-                    return Some(loc);
-                }
-
-                loc = loc.left();
-            }
-
-        }
-
-        // eprintln!("Before right {}", loc);
-
-
-        while is(loc.up(), Tile::Flow, grid) {
-            loc = loc.up();
-        }
-
-        // eprintln!("After right {}", loc);
-
-        while is(loc.right(), Tile::Flow, grid) {
-            loc = loc.right();
-        }
-
-        // eprintln!("After right {}", loc);
-
-        if let Some(Tile::Sand) = grid.get(loc.right()) {
-            return Some(loc.right());
-            // return next_free_location(loc.right(), grid);
-        }
-
-        /*
-        while is_not(loc.right(), Tile::Clay, grid) {
-            if let Some(Tile::Sand) = grid.get(loc.right()) {
-                return Some(loc.right());
-            }
-
-            loc = loc.right();
-        }
-
-
-        // Attempt going up a row
-        if let Some(Tile::Flow) = grid.get(loc.up()) {
-            return next_free_location(loc.up(), grid);
-        }
-
-        if let Some(Tile::Sand) = grid.get(loc.up()) {
-            return next_free_location(loc.up(), grid);
-        }
-        */
-    }
-
-    /*
-    if let Some((Tile::Sand, down)) = first_down(start, grid) {
-        return Some(down);
-    }
-
-    if let Some((Tile::Sand, loc)) = first_left(start, grid) {
-        if is_not(loc.down(), Tile::Flow, grid) {
-            return Some(loc);
-        }
-    }
-
-    if let Some((Tile::Sand, loc)) = first_right(start, grid) {
-        if is_not(loc.down(), Tile::Flow, grid) {
-            return Some(loc);
-        }
-    }
-
-    if let Some((Tile::Clay, loc)) = first_left(start, grid) {
-        if is(loc.down(), Tile::Sand, grid) {
-            return Some(loc.down());
-        }
-    }
-
-    if let Some((Tile::Clay, loc)) = first_right(start, grid) {
-        if is(loc.down(), Tile::Sand, grid) {
-            return Some(loc.down());
-        }
-
-        return next_free_location(loc.left().up(), grid);
-    }
-    */
-
-    None
-}
-
-
-
-fn from_spring(springs: &mut Vec<Vector2>, grid: &Grid) -> Option<(Direction, Vector2)> {
-    if let Some(_) = springs.pop() {
-        // Attempt going down on this spring
-        if let Some(sp) = springs.last() {
-            let mut pos = *sp;
-
-            while is(pos.down(), Tile::Flow, grid)
-                && (is(pos.left(), Tile::Sand, grid) || is(pos.right(), Tile::Sand, grid))
-            {
-                pos = pos.down();
-            }
-
-            pos = pos.up();
-
-            eprintln!("Found {}", pos);
-            if let Some(Tile::Sand) = grid.get(pos.left()) {
-                if !is_at_edge(pos, grid) {
-                    return Some((Direction::Left, pos.left()));
-                }
-            }
-
-            if let Some(Tile::Sand) = grid.get(pos.right()) {
-                if !is_at_edge(pos, grid) {
-                    return Some((Direction::Right, pos.right()));
-                }
-            }
-        }
-    }
-    None
-}
-
-fn produce_water_2(spring: Vector2, grid: &mut Grid, waters: &mut Vec<Vector2>, springs: &mut Vec<Vector2>) -> bool {
-    let start = waters.last().unwrap_or(&spring);
-    let sp = springs.last().unwrap_or(&spring);
-
-    if let Some((dir, loc)) = next_free_loc(*start, *sp, grid) {
-        if dir == Direction::Down {
-            springs.push(loc);
-        }
-        waters.push(loc);
-        grid[loc] = Tile::Flow;
-        true
-    } else {
-
-        if let Some((dir, loc)) = from_spring(springs, grid) {
-            if dir == Direction::Down {
-                springs.push(loc);
-            }
-            // if dir == Direction::Down {
-            //     springs.push(loc);
-            // }
-            // waters.push(loc);
-            // grid[loc] = Tile::Flow;
-            // return true;
-            waters.push(loc);
-            grid[loc] = Tile::Flow;
-            return true;
-        }
-        // eprintln!("No locations available");
-        false
-    }
-}
-
-fn produce_water(spring: Vector2, grid: &mut Grid, waters: &mut Vec<Vector2>) {
-
-    for water in waters.iter_mut() {
-        // Default for water is to try and go down
-        // until it reaches clay
-        let next_pos = *water + (0, 1);
-
-        // Skip water that would move outside
-        if !is_inside(next_pos, &grid) {
-            continue;
-        }
-
-        let around = grid.get_around(*water);
-
-        if around.down == Tile::Sand {
-            *water = water.down();
-            grid.set(*water, Tile::Flow);
-        } else if around.down == Tile::Clay
-            && around.current == Tile::Flow
-            && around.left == Tile::Sand
-        {
-            *water = water.left();
-            grid.set(*water, Tile::Rest);
-        } else if around.down == Tile::Flow
-            && around.current == Tile::Flow
-        {
-            *water = water.down();
-            grid.set(*water, Tile::Flow);
-        } else if around.down == Tile::Clay
-            && around.current == Tile::Rest
-            && (around.left == Tile::Sand || around.left == Tile::Rest)
-        {
-            *water = water.left();
-            grid.set(*water, Tile::Rest);
-        } else if around.down == Tile::Clay
-            && around.current == Tile::Flow
-            && around.left == Tile::Rest
-            && (around.right == Tile::Rest || around.right == Tile::Clay)
-        {
-            grid.set(*water, Tile::Rest);
-        }
-
-        else {
-            eprintln!("here {} with {:?}", *water, grid.get(*water));
-        }
-        /*
-        if around.down == Tile::Sand || around.down == Tile::Flow {
-        } else if around.down == Tile::Clay && around.current == Tile::Flow {
-            *water = water.left();
-            grid.set(*water, Tile::Rest);
-            eprintln!("here {} with {:?}", *water, grid.get(*water));
-        } else if around.down == Tile::Clay && (around.current == Tile::Rest || around.current == Tile::Flow) && around.left == Tile::Sand {
-            *water = water.left();
-            grid.set(*water, Tile::Rest);
-            eprintln!("here {} with {:?}", *water, grid.get(*water));
-        } else if around.down == Tile::Clay
-                  && around.current == Tile::Rest
-                  && around.left != Tile::Sand
-                  && around.right == Tile::Sand
-        {
-            *water = water.right();
-            grid.set(*water, Tile::Rest);
-        } else if is_full_of_water(water.down(), grid) {
-            eprintln!("FULL {}", water.down());
-            grid.set(*water, Tile::Rest);
-        } else {
-            eprintln!("here {} with {:?}", *water, grid.get(*water));
-        }
-        */
-
-        // if around[2] == Some(Tile::Sand) {
-        //     *water = water.down();
-        // } else if around[2] == Some(Tile::Clay) {
-        //     grid.set(water, Tile::Rest);
-        // }
-
-
-        /*
-        let (new_pos, new_tile) = match grid.get(next_pos).unwrap_or(Tile::Invalid) {
-            Tile::Sand => {
-                (next_pos, Tile::Flow),
-            },
-            Tile::Flow => {
-
-            },
-            Tile::Rest => {
-
-            },
-
-            Tile::Clay => {
-
-            },
-
-            Tile::Invalid => {
-            },
-        },
-        */
-
-        /*
-        if is_tile(next_pos, Tile::Sand, &grid) {
-            *water = next_pos;
-            // grid[next_pos] = Tile::Flow;
-
-            grid.set(next_pos, Tile::Flow);
-        } else if is_tile(next_pos, Tile::Clay, &grid) {
-
-            if is_tile(*water, Tile::Rest, &grid) {
-                let left = *water + (-1, 0);
-                *water = left;
-                grid.set(left, Tile::Rest);
-            } else {
-                grid.set(water, Tile::Rest);
-            }
-        } else if is_tile(next_pos, Tile::Rest, &grid) {
-            eprintln!("here");
-            // push water out of the way
-            let left = next_pos + (-1, 0);
-
-
-            if is_inside(left, &grid) {
-                if is_tile(left, Tile::Sand, &grid) {
-                    grid[left] = Tile::Rest;
-                    *water = left;
-                }
-            }
-        }
-        */
-    }
-
-    let water = spring + (0, 1);
-
-    waters.push(water);
-
-    grid[water] = Tile::Flow;
 }
 
 

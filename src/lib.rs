@@ -244,3 +244,46 @@ impl AddAssign<(i32, i32)> for Vector2 {
         *self = *self + other;
     }
 }
+
+
+pub trait ToIndex {
+    fn to_index(self, width: usize) -> usize;
+}
+
+impl ToIndex for Vector2 {
+    fn to_index(self, width: usize) -> usize {
+        if self.y < 0 {
+            return usize::max_value();
+        }
+        if self.x < 0 {
+            return usize::max_value();
+        }
+        if self.x > width as i32 - 1 {
+            return usize::max_value();
+        }
+
+        self.y as usize * width + self.x as usize
+    }
+}
+
+impl ToIndex for (i32, i32) {
+    fn to_index(self, width: usize) -> usize {
+        if self.1 < 0 || self.0 < 0 {
+            return usize::max_value();
+        }
+        if self.0 > width as i32 - 1 {
+            return usize::max_value();
+        }
+
+        self.1 as usize * width + self.0 as usize
+    }
+}
+
+impl ToIndex for (usize, usize) {
+    fn to_index(self, width: usize) -> usize {
+        if self.0 > width - 1 {
+            return usize::max_value();
+        }
+        self.1 * width + self.0
+    }
+}
