@@ -220,9 +220,6 @@ fn part1(s: &str) -> Result<usize> {
 
     grid.display();
 
-    let start_x = (size_x - 1) / 2;
-    let start_y = (size_y - 1) / 2;
-
     let s = start - (min_x, min_y);
     eprintln!("s {}", s);
 
@@ -230,10 +227,6 @@ fn part1(s: &str) -> Result<usize> {
         eprintln!("part1 {}", dist);
         return Ok(dist);
     }
-
-    // grid.find_path(start + (max_x, max_y));
-
-
 
     Ok(0)
 }
@@ -301,6 +294,14 @@ impl Grid {
         }
 
         // eprintln!("{:?}", distances);
+
+        let rooms_through_1000_doors: HashMap<_, _> = doors.iter()
+            .filter(|(k, _)| self.is_open(**k))
+            .filter(|(_, v)| **v >= 1000)
+            .collect();
+            ;
+
+        eprintln!("part2 {}", rooms_through_1000_doors.len());
 
         let max = distances.iter()
             .max_by_key(|(_, v)| *v)
