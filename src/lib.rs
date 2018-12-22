@@ -101,6 +101,32 @@ impl Vector2 {
             y,
         }
     }
+
+    /// [up, right, down, left]
+    pub fn around(&self) -> [Vector2; 4] {
+        [
+            self.up(),
+            self.right(),
+            self.down(),
+            self.left(),
+        ]
+    }
+
+    pub fn up(&self) -> Self {
+        *self + (0, -1)
+    }
+
+    pub fn down(&self) -> Self {
+        *self + (0, 1)
+    }
+
+    pub fn left(&self) -> Self {
+        *self + (-1, 0)
+    }
+
+    pub fn right(&self) -> Self {
+        *self + (1, 0)
+    }
 }
 
 impl fmt::Debug for Vector2 {
