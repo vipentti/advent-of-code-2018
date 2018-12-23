@@ -7,6 +7,7 @@ use std::io::{self, Write};
 use std::str::FromStr;
 use std::ops::{Index, IndexMut};
 use std::fmt;
+use std::collections::{BTreeSet, BTreeMap};
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -49,54 +50,13 @@ fn part1(s: &str) -> Result<Number> {
 
     machine.set_ip_reg(ip_reg);
     machine.set_code(instructions);
-    machine.set_reg(Reg(0), 2525738 /*1510199*/);
+    // machine.set_reg(Reg(0), 2525738 /*1510199*/);
 
     eprintln!("{:?}", machine);
 
-
-    machine.run()?;
-
-    eprintln!("{:?}", machine);
-
-    Ok(0)
-}
-
-fn part2(s: &str) -> Result<Number> {
-
-    let mut instructions = Vec::new();
-
-    let ips: Vec<_> = s.lines().filter(|s| s.starts_with("#ip"))
-        .map(|s| s.replace("#ip ", "")).collect();
-
-    assert!(ips.len() <= 1);
-
-    let ip_reg = ips.first().unwrap().parse::<usize>().map_err(|e| Box::new(e))?;
-
-    for line in s.lines().filter(|s| !s.starts_with('#')) {
-        let inst = line.parse::<Instruction>()?;
-        instructions.push(inst);
-    }
-
-    eprintln!("{:?}", instructions);
-    show_instructions(&instructions);
-    eprintln!("{}", ip_reg);
-
-    let mut machine = Machine::empty();
-
-    machine.set_ip_reg(ip_reg);
-    machine.set_code(instructions);
-    machine.set_registers(Registers([
-        1, 0, 0, 0, 0, 0
-    ]));
+    machine.find_repeat()?;
 
     eprintln!("{:?}", machine);
-
-    machine.skip()?;
-
-    eprintln!("{:?}", machine);
-    if machine.ip < machine.code.len() {
-        eprintln!("{:?}", machine.code[machine.ip - 1]);
-    }
 
     Ok(0)
 }
@@ -400,6 +360,65 @@ impl Machine {
         self.ip += 1;
     }
 
+    fn find_repeat(&mut self) -> Result<()> {
+        let r1 = Reg(1);
+        let r2 = Reg(2);
+        let r3 = Reg(3);
+
+        self.registers[r1] = 6_780_005;
+        self.registers[r3] = 65536;
+        let mut values = BTreeMap::new();
+        let mut indices = BTreeMap::new();
+
+        let mut c = 0;
+
+        loop {
+            loop {
+                self.registers[r2] = self.registers[r3] & 255;
+
+                self.registers[r1] = self.registers[r1] + self.registers[r2];
+
+                self.registers[r1] = self.registers[r1] & 0xFF_FFFF;
+
+                self.registers[r1] = self.registers[r1] * 65899;
+
+                self.registers[r1] = self.registers[r1] & 0xFF_FFFF;
+
+                let cond = self.registers[r3] >= 256;
+
+                if cond {
+                    self.registers[r3] = self.registers[r3] >> 8;
+                } else {
+                    break;
+                }
+            }
+
+            let val = self.registers[r1];
+
+            if values.contains_key(&val) {
+                eprintln!("{:?}", self.registers);
+                break;
+            } else {
+                values.insert(val, c);
+                indices.insert(c, val);
+            }
+
+            self.registers[r3] = self.registers[r1] | 65536;
+            self.registers[r1] = 6_780_005;
+
+            c += 1;
+        }
+
+        if let Some(val) = indices.get(&(c - 1)) {
+            eprintln!("part2: {}", val);
+        }
+        // eprintln!("Here {:?}", c);
+        // eprintln!("Here {:?}", stuff);
+
+
+        Ok(())
+    }
+
     fn skip(&mut self) -> Result<()> {
 
         /*
@@ -498,6 +517,9 @@ impl Machine {
 
         let stderr = io::stderr();
         let mut handle = stderr.lock();
+
+        let mut set = BTreeSet::new();
+
         loop {
             self.store_ip();
             let ip = self.get_ip();
@@ -515,6 +537,7 @@ impl Machine {
             self.move_ip();
 
             // if self.registers[Reg(0)] > 2000 && self.registers[Reg(5)] > 980 {
+                /*
             if self.registers[Reg(0)] != prev || prev1 != self.registers[Reg(1)]
                 || self.registers[Reg(1)] == self.registers[Reg(5)]
                 || self.registers[Reg(4)] == self.registers[Reg(3)]
@@ -526,10 +549,29 @@ impl Machine {
                 // writeln!(handle, "{:?} {:?} {:?}", before, inst, self.registers)?;
                 c += 1;
             }
+            */
 
-            if ip >= 22 {
-                writeln!(handle, "{: <3}: {:?} {:?} {:?}", ip, before, inst, self.registers)?;
+            if ip == 28 || ip == 10 || ip == 13 || prev1 != self.registers[Reg(1)] {
+                prev1 = self.registers[Reg(1)];
+                // writeln!(handle, "{: <3}: {:?} {:?} {:?}", ip, before, inst, self.registers)?;
             }
+
+            if ip == 13 {
+                if self.registers[Reg(1)] == 2525738 {
+                    writeln!(handle, "Loop {:?}", self.registers[Reg(1)])?;
+                    writeln!(handle, "{:?}", set)?;
+                }
+                if !set.insert(self.registers[Reg(1)]) {
+                }
+            }
+
+
+            if c >= 10000 {
+                // writeln!(handle, "{:?}", set)?;
+                c = 0;
+            }
+
+            c += 1;
 
             // if self.registers[r5]
             // eprintln!("{:?} {:?} {:?}", before, inst, self.registers);
