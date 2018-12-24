@@ -148,6 +148,13 @@ impl PartialEq<(i32, i32)> for Vector2 {
     }
 }
 
+impl PartialEq<(usize, usize)> for Vector2 {
+    fn eq(&self, other: &(usize, usize)) -> bool {
+        let v: Vector2 = (*other).into();
+        *self == v
+    }
+}
+
 impl From<Vector2> for (i32, i32) {
     fn from(v: Vector2) -> Self {
         (v.x, v.y)
