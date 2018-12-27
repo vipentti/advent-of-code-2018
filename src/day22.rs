@@ -79,8 +79,6 @@ fn part2(s: &str) -> Result<usize> {
 
     grid.find_path((0, 0).into(), target);
 
-    eprintln!("part2: Target {} @ {} - Risk {}", target, depth, risk);
-
     Ok(risk)
 }
 
@@ -223,22 +221,7 @@ impl Grid {
     }
 
     fn heuristic(&self, gear: Gear, from: Vector2, to: Vector2) -> usize {
-        let dist = manhattan_distance(&from, &to);
-        dist
-        // if !self.can_move(gear, from, to) {
-        //     // return usize::max_value();
-        //     return 14 * dist;
-        // }
-
-
-        // // Can use the same gear without switching
-        // if self.gear_is_valid(gear, from)
-        //     && self.gear_is_valid(gear, to)
-        // {
-        //     return 1 * dist;
-        // }
-
-        // 7 * dist
+        manhattan_distance(&from, &to)
     }
 
     fn gear_is_valid(&self, gear: Gear, pt: Vector2) -> bool {
@@ -249,7 +232,6 @@ impl Grid {
                 (Tile::Mouth, Gear::Torch) => true,
                 (Tile::Mouth, Gear::Climbing) => true,
                 (Tile::Target, Gear::Torch) => true,
-                // (Tile::Target, Gear::Climbing) => true,
                 (Tile::Rocky, Gear::Torch) => true,
                 (Tile::Rocky, Gear::Climbing) => true,
                 (Tile::Wet, Gear::Climbing) => true,
@@ -349,13 +331,7 @@ impl Grid {
 
             if current == end {
                 eprintln!("{:?}", (current, gear));
-                let path = reconstruct_path(&came_from, (current, gear));
-
-                // eprintln!("Path {:?}", path);
-
-                let dur = count_path_duration(&path);
-                eprintln!("g_score {:?}", g_score.get(&(current, gear)));
-                eprintln!("Duration: {:?}", dur);
+                eprintln!("part2 {:?}", g_score.get(&(current, gear)));
                 break;
             }
 
@@ -366,9 +342,8 @@ impl Grid {
                 *score
             } else {
                 eprintln!("{:?}", g_score);
-                panic!("");
+                panic!("Missing score");
             };
-            // let current_score = g_score[&(current, gear)];
 
             for nbr in current.around().into_iter() {
                 if !self.is_walkable(*nbr) {
@@ -399,67 +374,6 @@ impl Grid {
                 came_from.insert((nbr, gear), (current, gear));
                 g_score.insert((nbr, gear), dist);
                 f_score.insert((nbr, gear), dist + manhattan_distance(&nbr, &end));
-                // if !self.can_move(gear, current, *nbr) {
-                //     // eprintln!("Unable to move from {} to {} with {:?}", current, nbr, gear);
-                //     continue;
-                // }
-
-
-                    /*
-                for possible_gear in self.next_gear(gear, current, nbr) {
-                    // Skip visited
-                    if closed_set.contains(&(nbr, possible_gear)) {
-                        continue;
-                    }
-
-                    let factor = if possible_gear == gear {
-                        1
-                    } else {
-                        7 + 1
-                    };
-
-                    let dist = current_score + factor;
-
-                    if let Some(g) = g_score.get(&(nbr, possible_gear)) {
-                        if dist >= *g {
-                            continue;
-                        }
-                    }
-
-                    if !open_set.contains(&(nbr, possible_gear)) {
-                        open_set.push((nbr, possible_gear));
-                    }
-
-                    came_from.insert((nbr, possible_gear), (current, gear));
-                    g_score.insert((nbr, possible_gear), dist);
-                    f_score.insert((nbr, possible_gear), dist + manhattan_distance(&nbr, &end));
-
-
-                    let heur = factor * manhattan_distance(&current, &nbr);
-
-                    let score = current_score + heur;
-                    let fscore = self.heuristic(possible_gear, nbr, end);
-
-                    if fscore == usize::max_value() {
-                        //Skipping
-                        eprintln!("Skipping this");
-                        continue;
-                    }
-
-                    if !open_set.contains(&(nbr, possible_gear)) {
-                        open_set.push((nbr, possible_gear));
-                    } else if let Some(g) = g_score.get(&(nbr, possible_gear)) {
-                        if score >= *g {
-                            continue;
-                        }
-                    }
-
-                    came_from.insert((nbr, possible_gear), (current, gear));
-
-                    g_score.insert((nbr, possible_gear), score);
-                    f_score.insert((nbr, possible_gear), score + fscore);
-                }
-                    */
             }
 
             for ngear in self.next_gear(gear, current, current) {
