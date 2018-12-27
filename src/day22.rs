@@ -1,18 +1,13 @@
 #![allow(dead_code)]
-use aoc::{Result, Vector2, CustomError, ToIndex};
+use aoc::{Result, Vector2, ToIndex};
 
-use std::io::{self, Write};
-
-use std::str::FromStr;
-use std::ops::{Index, IndexMut};
-use std::fmt;
-use std::collections::{BTreeSet, BTreeMap};
+use std::collections::{HashSet, HashMap};
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
 
     part1(&s)?;
-    // part2(&s)?;
+    part2(&s)?;
 
     Ok(())
 }
@@ -44,10 +39,49 @@ fn part1(s: &str) -> Result<usize> {
 
     let risk = grid.calculate(target);
 
+    #[cfg(test)]
     grid.display();
 
     eprintln!("part1: Target {} @ {} - Risk {}", target, depth, risk);
-    Ok(0)
+
+    Ok(risk)
+}
+
+fn part2(s: &str) -> Result<usize> {
+    let mut depth = i32::min_value();
+    let mut target_x = i32::min_value();
+    let mut target_y = i32::min_value();
+
+    for (ind, line) in s.lines().enumerate() {
+        if ind == 0 {
+            let input = line.replace("depth: ", "");
+            depth = input.parse::<i32>()?;
+        } else if ind == 1 {
+            let input = line.replace("target: ", "");
+            let parts: Vec<&str> = input.split(",")
+                        .map(|s| s.trim())
+                        .collect();
+
+            target_x = parts[0].parse::<i32>()?;
+            target_y = parts[1].parse::<i32>()?;
+        }
+    }
+
+    let target: Vector2 = (target_x, target_y).into();
+
+
+    let mut grid = Grid::new(400, target.y as usize * 2, depth as usize);
+
+    let risk = grid.calculate(target);
+
+    #[cfg(test)]
+    grid.display();
+
+    grid.find_path((0, 0).into(), target);
+
+    eprintln!("part2: Target {} @ {} - Risk {}", target, depth, risk);
+
+    Ok(risk)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -57,6 +91,13 @@ enum Tile {
     Narrow,
     Mouth,
     Target
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
+enum Gear {
+    Torch,
+    Climbing,
+    Neither,
 }
 
 impl Tile {
@@ -74,6 +115,11 @@ impl Tile {
 impl Default for Tile {
     fn default() -> Self { Tile::Rocky }
 }
+
+fn manhattan_distance(a: &Vector2, b: &Vector2) -> usize {
+    ((b.x - a.x).abs() + (b.y - a.y).abs()) as usize
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 struct Grid {
     data: Vec<Tile>,
@@ -166,6 +212,286 @@ impl Grid {
         risk_level
     }
 
+    fn is_walkable(&self, pos: Vector2) -> bool {
+        let index = pos.to_index(self.width);
+
+        self.data.get(index).is_some()
+    }
+
+    fn can_move(&self, gear: Gear, from: Vector2, to: Vector2) -> bool {
+        !self.next_gear(gear, from, to).is_empty()
+    }
+
+    fn heuristic(&self, gear: Gear, from: Vector2, to: Vector2) -> usize {
+        let dist = manhattan_distance(&from, &to);
+        dist
+        // if !self.can_move(gear, from, to) {
+        //     // return usize::max_value();
+        //     return 14 * dist;
+        // }
+
+
+        // // Can use the same gear without switching
+        // if self.gear_is_valid(gear, from)
+        //     && self.gear_is_valid(gear, to)
+        // {
+        //     return 1 * dist;
+        // }
+
+        // 7 * dist
+    }
+
+    fn gear_is_valid(&self, gear: Gear, pt: Vector2) -> bool {
+        let i = pt.to_index(self.width);
+
+        if let Some(tile) = self.data.get(i) {
+            match (tile, gear) {
+                (Tile::Mouth, Gear::Torch) => true,
+                (Tile::Mouth, Gear::Climbing) => true,
+                (Tile::Target, Gear::Torch) => true,
+                // (Tile::Target, Gear::Climbing) => true,
+                (Tile::Rocky, Gear::Torch) => true,
+                (Tile::Rocky, Gear::Climbing) => true,
+                (Tile::Wet, Gear::Climbing) => true,
+                (Tile::Wet, Gear::Neither) => true,
+                (Tile::Narrow, Gear::Neither) => true,
+                (Tile::Narrow, Gear::Torch) => true,
+
+                _ => false,
+            }
+
+        } else {
+            false
+        }
+    }
+
+    fn next_gear(&self, gear: Gear, from: Vector2, to: Vector2) -> Vec<Gear> {
+        let mut gears = Vec::new();
+
+        for g in &[Gear::Torch, Gear::Climbing, Gear::Neither] {
+            if self.gear_is_valid(*g, from)
+                && self.gear_is_valid(*g, to)
+            {
+                gears.push(*g);
+            }
+        }
+
+        gears
+    }
+
+    fn find_path(&self, start: Vector2, end: Vector2) {
+
+        fn reconstruct_path(came_from: &HashMap<(Vector2, Gear), (Vector2, Gear)>, mut current: (Vector2, Gear)) -> Vec<(Vector2, Gear)> {
+            let mut path = vec![current];
+
+            while let Some(cur) = came_from.get(&current) {
+                current = *cur;
+                path.push(current);
+            }
+
+            // path.pop();
+
+            path.reverse();
+
+            path
+        }
+
+        fn count_path_duration(path: &[(Vector2, Gear)]) -> usize {
+            let mut duration = 0;
+
+
+            for index in 0..(path.len() - 1) {
+
+                let (_, g1) = path[index];
+                let (_, g2) = path[index + 1];
+
+                if g1 == g2 {
+                    duration += 1;
+                } else {
+                    duration += 7;
+                    duration += 1;
+                }
+
+            }
+
+            duration
+        }
+
+        let start_pair = (start, Gear::Torch);
+
+        let mut g_score: HashMap<(Vector2, Gear), usize> = HashMap::new();
+        g_score.insert(start_pair, 0);
+
+        let mut f_score: HashMap<(Vector2, Gear), usize> = HashMap::new();
+        f_score.insert(start_pair, self.heuristic(Gear::Torch, start, end));
+
+        let mut closed_set: HashSet<(Vector2, Gear)> = HashSet::new();
+        let mut open_set = vec![(start, Gear::Torch)];
+
+        let mut came_from: HashMap<(Vector2, Gear), (Vector2, Gear)> = HashMap::new();
+
+        eprintln!("{:?}", g_score);
+
+        while !open_set.is_empty() {
+            open_set.sort_by(|a, b| {
+                let ascore = f_score.get(a).unwrap_or(&usize::max_value());
+                let bscore = f_score.get(b).unwrap_or(&usize::max_value());
+
+                match ascore.cmp(&bscore).reverse() {
+                    std::cmp::Ordering::Equal => {
+                        a.cmp(b).reverse()
+                    },
+                    other => other,
+                }
+            });
+
+            let (current, gear) = open_set.pop().unwrap();
+
+            if current == end {
+                eprintln!("{:?}", (current, gear));
+                let path = reconstruct_path(&came_from, (current, gear));
+
+                // eprintln!("Path {:?}", path);
+
+                let dur = count_path_duration(&path);
+                eprintln!("g_score {:?}", g_score.get(&(current, gear)));
+                eprintln!("Duration: {:?}", dur);
+                break;
+            }
+
+            closed_set.insert((current, gear));
+
+
+            let current_score = if let Some(score) = g_score.get(&(current, gear)) {
+                *score
+            } else {
+                eprintln!("{:?}", g_score);
+                panic!("");
+            };
+            // let current_score = g_score[&(current, gear)];
+
+            for nbr in current.around().into_iter() {
+                if !self.is_walkable(*nbr) {
+                    continue;
+                }
+                let nbr = *nbr;
+
+                if closed_set.contains(&(nbr, gear)) {
+                    continue;
+                }
+
+                if !self.gear_is_valid(gear, nbr) {
+                    continue;
+                }
+
+                let dist = current_score + 1;
+
+                if let Some(g) = g_score.get(&(nbr, gear)) {
+                    if dist >= *g {
+                        continue;
+                    }
+                }
+
+                if !open_set.contains(&(nbr, gear)) {
+                    open_set.push((nbr, gear));
+                }
+
+                came_from.insert((nbr, gear), (current, gear));
+                g_score.insert((nbr, gear), dist);
+                f_score.insert((nbr, gear), dist + manhattan_distance(&nbr, &end));
+                // if !self.can_move(gear, current, *nbr) {
+                //     // eprintln!("Unable to move from {} to {} with {:?}", current, nbr, gear);
+                //     continue;
+                // }
+
+
+                    /*
+                for possible_gear in self.next_gear(gear, current, nbr) {
+                    // Skip visited
+                    if closed_set.contains(&(nbr, possible_gear)) {
+                        continue;
+                    }
+
+                    let factor = if possible_gear == gear {
+                        1
+                    } else {
+                        7 + 1
+                    };
+
+                    let dist = current_score + factor;
+
+                    if let Some(g) = g_score.get(&(nbr, possible_gear)) {
+                        if dist >= *g {
+                            continue;
+                        }
+                    }
+
+                    if !open_set.contains(&(nbr, possible_gear)) {
+                        open_set.push((nbr, possible_gear));
+                    }
+
+                    came_from.insert((nbr, possible_gear), (current, gear));
+                    g_score.insert((nbr, possible_gear), dist);
+                    f_score.insert((nbr, possible_gear), dist + manhattan_distance(&nbr, &end));
+
+
+                    let heur = factor * manhattan_distance(&current, &nbr);
+
+                    let score = current_score + heur;
+                    let fscore = self.heuristic(possible_gear, nbr, end);
+
+                    if fscore == usize::max_value() {
+                        //Skipping
+                        eprintln!("Skipping this");
+                        continue;
+                    }
+
+                    if !open_set.contains(&(nbr, possible_gear)) {
+                        open_set.push((nbr, possible_gear));
+                    } else if let Some(g) = g_score.get(&(nbr, possible_gear)) {
+                        if score >= *g {
+                            continue;
+                        }
+                    }
+
+                    came_from.insert((nbr, possible_gear), (current, gear));
+
+                    g_score.insert((nbr, possible_gear), score);
+                    f_score.insert((nbr, possible_gear), score + fscore);
+                }
+                    */
+            }
+
+            for ngear in self.next_gear(gear, current, current) {
+                if ngear == gear {
+                    continue;
+                }
+
+                if closed_set.contains(&(current, ngear)) {
+                    continue;
+                }
+
+                let dist = current_score + 7;
+
+                if let Some(g) = g_score.get(&(current, ngear)) {
+                    if dist >= *g {
+                        continue;
+                    }
+                }
+
+                if !open_set.contains(&(current, ngear)) {
+                    open_set.push((current, ngear));
+                }
+
+                came_from.insert((current, ngear), (current, gear));
+                g_score.insert((current, ngear), dist);
+                f_score.insert((current, ngear), dist + manhattan_distance(&current, &end));
+            }
+        }
+
+        eprintln!("HRE");
+    }
+
     fn display(&self) {
         eprintln!("{}", self.render_to_string());
     }
@@ -215,6 +541,16 @@ impl<T: ToIndex> std::ops::IndexMut<T> for Grid {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn part2_example_input() {
+        let input = r"
+depth: 510
+target: 10,10
+        ";
+
+        assert_eq!(45, part2(input.trim()).unwrap());
+    }
 
     #[test]
     fn part1_example_input() {
