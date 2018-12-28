@@ -9,28 +9,17 @@ fn main() -> Result<()> {
     let s = aoc::read_input()?;
 
     part1(&s)?;
-    // part2(&s)?;
+    part2(&s)?;
 
     Ok(())
 }
 
 
 fn part1(s: &str) -> Result<usize> {
-    lazy_static! {
-        // 17 units each with 5390 hit points (weak to radiation, bludgeoning) with an attack that does 4507 fire damage at initiative 2
-        // (\d+) units each with (\d+) hit points (\(.*\))? with an attack that does (\d+) (\w+) damage at initiative (\d+)
-        // static ref RE: Regex = Regex::new(r"(\d+) units each with (\d+) hit points \(.*\)? with an attack that does (\d+) (\w+) damage at initiative (\d+)").unwrap();
-        // (\d+) units each with (\d+) hit points (\(.*\))?\s*with an attack that does (\d+) (\w+) damage at initiative (\d+)
-        // static ref RE: Regex = Regex::new(r"(\d+) units each with (\d+) hit points (\(.*\))*\s*with an attack that does (\d+) (\w+) damage at initiative (\d+)").unwrap();
-        // (?mi)(\d+) units each with (\d+) hit points (\(.*\))*\s*with an attack that does (\d+) (\w+) damage at initiative (\d+)
-        static ref RE: Regex = Regex::new(r"(?i)(\d+) units each with (\d+) hit points\s*(\(.*\))*\s*with an attack that does (\d+) (\w+) damage at initiative (\d+)").unwrap();
-    }
-
     let mut teams: HashMap<Team, Vec<Group>> = HashMap::new();
     let mut current_team = Team::ImmuneSystem;
 
     let mut groups = Vec::new();
-
 
     for (ind, line) in s.lines().enumerate() {
         if line.starts_with("Immune System:") {
@@ -85,6 +74,232 @@ fn part1(s: &str) -> Result<usize> {
     Ok(units as usize)
 }
 
+fn part2(s: &str) -> Result<i64> {
+    let mut teams: HashMap<Team, Vec<Group>> = HashMap::new();
+    let mut current_team = Team::ImmuneSystem;
+
+    let mut groups = Vec::new();
+
+    for (ind, line) in s.lines().enumerate() {
+        if line.starts_with("Immune System:") {
+            current_team = Team::ImmuneSystem;
+            continue;
+        }
+
+        if line.starts_with("Infection:") {
+            current_team = Team::Infection;
+            continue;
+        }
+
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let mut group = line.parse::<Group>()
+            .map_err(|_| CustomError(format!("Invalid capture at line {}", ind + 1)))?;
+
+        group.team = current_team;
+        let len = teams.entry(current_team)
+            .or_insert_with(Vec::new)
+            .len();
+
+        group.id = len as i64 + 1;
+
+        groups.push(group.clone());
+
+        teams.entry(current_team)
+            .or_insert_with(Vec::new)
+            .push(group);
+    }
+
+
+    let original_groups = groups.clone();
+
+    /*
+    let mut current_boost: i64 = 10000;
+
+    let mut min_boost = i64::max_value();
+    let mut max_boost = i64::min_value();
+
+    // Find boost
+    let mut prev = false;
+
+    loop {
+        let mut groups = original_groups.clone();
+
+        let c = run_with_boost(&mut groups, current_boost);
+
+        if prev && !c {
+            max_boost = current_boost + 1000;
+            break;
+        } else {
+            current_boost -= 1000;
+            prev = c;
+        }
+    }
+
+    prev = false;
+    current_boost = 0;
+
+    loop {
+        let mut groups = original_groups.clone();
+
+        let c = run_with_boost(&mut groups, current_boost);
+
+        if !prev && c {
+            min_boost = current_boost - 1000;
+            break;
+        } else {
+            current_boost += 1000;
+            prev = c;
+        }
+    }
+
+    eprintln!("Max {}", max_boost);
+    eprintln!("Min {}", min_boost);
+    */
+
+    let mut min = 0;
+    let mut max = 1_000_000;
+
+    for step in &[100_000, 10_000, 1000, 100, 10, 5] {
+        match (find_min_boost(&original_groups, *step, min, max), find_max_boost(&original_groups, *step, min, max) ) {
+            (Some(mn), Some(mx)) => {
+                eprintln!("Step {} min {} max {}", step, mn, mx);
+                min = mn;
+                max = mx;
+            }
+
+            other => panic!("{} {:?}", step, other),
+        }
+    }
+
+    eprintln!("Here {} - {}", min, max);
+
+    let mut boost = min;
+
+    let mut prev = false;
+    loop {
+        let mut g = original_groups.clone();
+
+        let c = run_with_boost(&mut g, boost);
+
+        if !prev && c {
+            break;
+        } else {
+            boost += 1;
+            prev = c;
+        }
+    }
+
+    eprintln!("Boost {}", boost);
+    run_with_boost(&mut groups, boost);
+
+    // loop {
+    //     let mut groups = original_groups.clone();
+
+
+    //     // if run_with_boost(&mut groups, current_boost) {
+    //     //     current_boost = current_boost / 2;
+    //     // } else {
+    //     //     current_boost = current_boost * 2;
+    //     // }
+    // }
+
+    let units: i64 = groups.iter().map(|g| g.units).sum();
+
+    eprintln!("part2: {:?}", units);
+
+    Ok(units)
+}
+
+fn find_max_boost(original_groups: &Vec<Group>, step: i64, min: i64, max: i64) -> Option<i64> {
+    let mut current_boost: i64 = max;
+    let mut max_boost = i64::max_value();
+    let mut prev = false;
+
+    loop {
+        if current_boost < min {
+            return None;
+        }
+        let mut groups = original_groups.clone();
+
+        let c = run_with_boost(&mut groups, current_boost);
+
+        if prev && !c {
+            max_boost = current_boost + step;
+            break;
+        } else {
+            current_boost -= step;
+            prev = c;
+        }
+    }
+
+    Some(max_boost)
+}
+
+fn find_min_boost(original_groups: &Vec<Group>, step: i64, min: i64, max: i64) -> Option<i64> {
+    let mut current_boost: i64 = min;
+    let mut min_boost = i64::max_value();
+    let mut prev = false;
+
+    loop {
+        if current_boost > max {
+            return None;
+        }
+        let mut groups = original_groups.clone();
+
+        let c = run_with_boost(&mut groups, current_boost);
+
+        if !prev && c {
+            min_boost = current_boost - step;
+            break;
+        } else {
+            current_boost += step;
+            prev = c;
+        }
+    }
+
+    Some(min_boost)
+}
+
+fn count_units(groups: &[Group]) -> i64 {
+    groups.iter().map(|g| g.units).sum()
+}
+
+fn run_with_boost(groups: &mut Vec<Group>, boost: i64) -> bool {
+    for g in groups.iter_mut() {
+        if g.team == Team::ImmuneSystem {
+            g.damage += boost;
+        }
+    }
+
+    let mut prev_counts: Vec<i64> = Vec::new();
+    prev_counts.push(count_units(&groups));
+
+    // #[cfg(test)]
+    // show_groups(&groups);
+    while has_both(&groups) {
+        run_fight(groups);
+
+        let count = count_units(&groups);
+
+        if prev_counts.iter().rev().take(10).all(|&c| c == count) {
+            eprintln!("Stalemate {}", boost);
+            break;
+        } else {
+            prev_counts.push(count);
+        }
+    }
+
+    // #[cfg(test)]
+    // show_groups(&groups);
+
+    let e1 = groups.iter().any(|g| g.team == Team::ImmuneSystem);
+    let e2 = groups.iter().any(|g| g.team == Team::Infection);
+    e1 && !e2
+}
+
 fn has_both(groups: &[Group]) -> bool {
     let e1 = groups.iter().any(|g| g.team == Team::ImmuneSystem);
     let e2 = groups.iter().any(|g| g.team == Team::Infection);
@@ -123,8 +338,8 @@ fn run_fight(groups: &mut Vec<Group>) {
         let es: Vec<_> = e.collect();
 
         if let Some(id) = select_target(group, &es[..]) {
-            #[cfg(test)]
-            eprintln!("{:?} {} attacking {:?}", group.team, group.id, id);
+            // #[cfg(test)]
+            // eprintln!("{:?} {} attacking {:?}", group.team, group.id, id);
             attack.insert((group.team, group.id), id);
             defend.insert(id, (group.team, group.id));
         }
@@ -139,8 +354,8 @@ fn run_fight(groups: &mut Vec<Group>) {
 
     for att in attackers {
         if let Some(target) = attack.get(&att) {
-            #[cfg(test)]
-            eprintln!("Attacker {:?} attacking {:?}", att, target);
+            // #[cfg(test)]
+            // eprintln!("Attacker {:?} attacking {:?}", att, target);
 
             let target_index = groups.iter()
                 .position(|g| (g.team, g.id) == *target)
@@ -214,11 +429,11 @@ fn select_target(attacker: &Group, possible_enemies: &[&Group]) -> Option<(Team,
     });
 
     // eprintln!("Enemies: {:?}", enemies);
-    #[cfg(test)]
-    for enemy in enemies.iter() {
-        let damage = enemy.would_take_damage(attacker);
-        eprintln!("{:?} {} would deal {} damage to {:?} {}", attacker.team, attacker.id, damage, enemy.team, enemy.id);
-    }
+    // #[cfg(test)]
+    // for enemy in enemies.iter() {
+    //     let damage = enemy.would_take_damage(attacker);
+    //     eprintln!("{:?} {} would deal {} damage to {:?} {}", attacker.team, attacker.id, damage, enemy.team, enemy.id);
+    // }
 
     enemies.first().map(|e| (e.team, e.id))
 }
@@ -250,8 +465,8 @@ impl Group {
 
         let units_to_lose = std::cmp::min(self.units, units_to_lose);
 
-        #[cfg(test)]
-        eprintln!("{:?} {} will lose {} units", self.team, self.id, units_to_lose);
+        // #[cfg(test)]
+        // eprintln!("{:?} {} will lose {} units", self.team, self.id, units_to_lose);
 
         self.units -= units_to_lose;
     }
@@ -392,5 +607,20 @@ Infection:
         ";
 
         assert_eq!(782 + 4434, part1(input.trim()).unwrap());
+    }
+
+    #[test]
+    fn part2_example_input() {
+        let input = r"
+Immune System:
+17 units each with 5390 hit points (weak to radiation, bludgeoning) with an attack that does 4507 fire damage at initiative 2
+989 units each with 1274 hit points (immune to fire; weak to bludgeoning, slashing) with an attack that does 25 slashing damage at initiative 3
+
+Infection:
+801 units each with 4706 hit points (weak to radiation) with an attack that does 116 bludgeoning damage at initiative 1
+4485 units each with 2961 hit points (immune to radiation; weak to fire, cold) with an attack that does 12 slashing damage at initiative 4
+        ";
+
+        assert_eq!(51, part2(input.trim()).unwrap());
     }
 }
