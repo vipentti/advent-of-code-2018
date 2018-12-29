@@ -1,8 +1,8 @@
-use aoc::{Result};
+use aoc::Result;
 
 use std::collections::{BTreeSet, VecDeque};
-use std::ops::{Add, Sub};
 use std::fmt;
+use std::ops::{Add, Sub};
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -16,10 +16,11 @@ fn read_points(s: &str) -> Result<Vec<V4>> {
     let mut points = Vec::new();
 
     for line in s.lines() {
-        let parts: std::result::Result<Vec<i64>, _> = line.split(",")
-                        .map(|s| s.trim())
-                        .map(|s| s.parse::<i64>())
-                        .collect();
+        let parts: std::result::Result<Vec<i64>, _> = line
+            .split(",")
+            .map(|s| s.trim())
+            .map(|s| s.parse::<i64>())
+            .collect();
 
         let parts = parts?;
 
@@ -30,7 +31,6 @@ fn read_points(s: &str) -> Result<Vec<V4>> {
             w: parts[3],
         });
     }
-
 
     Ok(points)
 }
@@ -75,7 +75,7 @@ impl Graph {
             vertices,
             rows,
             columns,
-            edges: vec![vec![Default::default(); columns]; rows]
+            edges: vec![vec![Default::default(); columns]; rows],
         }
     }
 
@@ -170,7 +170,10 @@ impl Graph {
             buf.push(std::char::from_digit(y as u32 % 10, 10).unwrap());
             buf.push(' ');
             for x in 0..self.columns {
-                buf.push(std::char::from_digit(self.edges[y][x] as u32 % 10, 10).unwrap());
+                buf.push(
+                    std::char::from_digit(self.edges[y][x] as u32 % 10, 10)
+                        .unwrap(),
+                );
             }
             buf.push('\n');
         }
@@ -181,8 +184,7 @@ impl Graph {
     }
 
     fn index(&self, v: V4) -> Option<usize> {
-        self.vertices.iter()
-            .position(|&p| p == v)
+        self.vertices.iter().position(|&p| p == v)
     }
 
     fn add_edge(&mut self, a: V4, b: V4) {
@@ -195,10 +197,9 @@ impl Graph {
 
 fn manhattan_distance(a: V4, b: V4) -> i64 {
     ((b.x - a.x).abs()
-     + (b.y - a.y).abs()
-     + (b.z - a.z).abs()
-     + (b.w - a.w).abs()
-     ) as i64
+        + (b.y - a.y).abs()
+        + (b.z - a.z).abs()
+        + (b.w - a.w).abs()) as i64
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Default)]
@@ -211,7 +212,12 @@ pub struct V4 {
 
 impl std::convert::From<(i64, i64, i64, i64)> for V4 {
     fn from(v: (i64, i64, i64, i64)) -> Self {
-        V4 { x: v.0, y: v.1, z: v.2, w: v.3 }
+        V4 {
+            x: v.0,
+            y: v.1,
+            z: v.2,
+            w: v.3,
+        }
     }
 }
 
@@ -292,7 +298,6 @@ mod tests {
         ";
 
         assert_eq!(4, part1(sample.trim()).unwrap());
-
 
         let sample = r"
 1,-1,0,1

@@ -1,13 +1,12 @@
-
 #![allow(dead_code)]
-use aoc::{Result, CustomError};
+use aoc::{CustomError, Result};
 
 use std::io::{self, Write};
 
-use std::str::FromStr;
-use std::ops::{Index, IndexMut};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
-use std::collections::{BTreeSet, BTreeMap};
+use std::ops::{Index, IndexMut};
+use std::str::FromStr;
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -19,23 +18,27 @@ fn main() -> Result<()> {
 }
 
 fn show_instructions(code: &[Instruction]) {
-
     for (i, c) in code.iter().enumerate() {
         eprintln!("{: <3}: {:?}", i, c);
     }
-
 }
 
 fn part1(s: &str) -> Result<Number> {
-
     let mut instructions = Vec::new();
 
-    let ips: Vec<_> = s.lines().filter(|s| s.starts_with("#ip"))
-        .map(|s| s.replace("#ip ", "")).collect();
+    let ips: Vec<_> = s
+        .lines()
+        .filter(|s| s.starts_with("#ip"))
+        .map(|s| s.replace("#ip ", ""))
+        .collect();
 
     assert!(ips.len() <= 1);
 
-    let ip_reg = ips.first().unwrap().parse::<usize>().map_err(|e| Box::new(e))?;
+    let ip_reg = ips
+        .first()
+        .unwrap()
+        .parse::<usize>()
+        .map_err(|e| Box::new(e))?;
 
     for line in s.lines().filter(|s| !s.starts_with('#')) {
         let inst = line.parse::<Instruction>()?;
@@ -131,22 +134,50 @@ enum Instruction {
 impl fmt::Debug for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Instruction::Addr(a, b, c) => write!(f, "addr {:?} {:?} {:?}", a, b, c),
-            Instruction::Addi(a, b, c) => write!(f, "addi {:?} {:?} {:?}", a, b, c),
-            Instruction::Mulr(a, b, c) => write!(f, "mulr {:?} {:?} {:?}", a, b, c),
-            Instruction::Muli(a, b, c) => write!(f, "muli {:?} {:?} {:?}", a, b, c),
-            Instruction::Banr(a, b, c) => write!(f, "banr {:?} {:?} {:?}", a, b, c),
-            Instruction::Bani(a, b, c) => write!(f, "bani {:?} {:?} {:?}", a, b, c),
-            Instruction::Borr(a, b, c) => write!(f, "borr {:?} {:?} {:?}", a, b, c),
-            Instruction::Bori(a, b, c) => write!(f, "bori {:?} {:?} {:?}", a, b, c),
+            Instruction::Addr(a, b, c) => {
+                write!(f, "addr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Addi(a, b, c) => {
+                write!(f, "addi {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Mulr(a, b, c) => {
+                write!(f, "mulr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Muli(a, b, c) => {
+                write!(f, "muli {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Banr(a, b, c) => {
+                write!(f, "banr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Bani(a, b, c) => {
+                write!(f, "bani {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Borr(a, b, c) => {
+                write!(f, "borr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Bori(a, b, c) => {
+                write!(f, "bori {:?} {:?} {:?}", a, b, c)
+            }
             Instruction::Setr(a, b, c) => write!(f, "setr {:?} _  {:?}", a, c),
             Instruction::Seti(a, b, c) => write!(f, "seti {:?} _  {:?}", a, c),
-            Instruction::Gtir(a, b, c) => write!(f, "gtir {:?} {:?} {:?}", a, b, c),
-            Instruction::Gtri(a, b, c) => write!(f, "gtri {:?} {:?} {:?}", a, b, c),
-            Instruction::Gtrr(a, b, c) => write!(f, "gtrr {:?} {:?} {:?}", a, b, c),
-            Instruction::Eqir(a, b, c) => write!(f, "eqir {:?} {:?} {:?}", a, b, c),
-            Instruction::Eqri(a, b, c) => write!(f, "eqri {:?} {:?} {:?}", a, b, c),
-            Instruction::Eqrr(a, b, c) => write!(f, "eqrr {:?} {:?} {:?}", a, b, c),
+            Instruction::Gtir(a, b, c) => {
+                write!(f, "gtir {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Gtri(a, b, c) => {
+                write!(f, "gtri {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Gtrr(a, b, c) => {
+                write!(f, "gtrr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Eqir(a, b, c) => {
+                write!(f, "eqir {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Eqri(a, b, c) => {
+                write!(f, "eqri {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Eqrr(a, b, c) => {
+                write!(f, "eqrr {:?} {:?} {:?}", a, b, c)
+            }
         }
     }
 }
@@ -154,22 +185,50 @@ impl fmt::Debug for Instruction {
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Instruction::Addr(a, b, c) => write!(f, "addr {:?} {:?} {:?}", a, b, c),
-            Instruction::Addi(a, b, c) => write!(f, "addi {:?} {:?} {:?}", a, b, c),
-            Instruction::Mulr(a, b, c) => write!(f, "mulr {:?} {:?} {:?}", a, b, c),
-            Instruction::Muli(a, b, c) => write!(f, "muli {:?} {:?} {:?}", a, b, c),
-            Instruction::Banr(a, b, c) => write!(f, "banr {:?} {:?} {:?}", a, b, c),
-            Instruction::Bani(a, b, c) => write!(f, "bani {:?} {:?} {:?}", a, b, c),
-            Instruction::Borr(a, b, c) => write!(f, "borr {:?} {:?} {:?}", a, b, c),
-            Instruction::Bori(a, b, c) => write!(f, "bori {:?} {:?} {:?}", a, b, c),
+            Instruction::Addr(a, b, c) => {
+                write!(f, "addr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Addi(a, b, c) => {
+                write!(f, "addi {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Mulr(a, b, c) => {
+                write!(f, "mulr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Muli(a, b, c) => {
+                write!(f, "muli {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Banr(a, b, c) => {
+                write!(f, "banr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Bani(a, b, c) => {
+                write!(f, "bani {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Borr(a, b, c) => {
+                write!(f, "borr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Bori(a, b, c) => {
+                write!(f, "bori {:?} {:?} {:?}", a, b, c)
+            }
             Instruction::Setr(a, b, c) => write!(f, "setr {:?} _  {:?}", a, c),
             Instruction::Seti(a, b, c) => write!(f, "seti {:?} _  {:?}", a, c),
-            Instruction::Gtir(a, b, c) => write!(f, "gtir {:?} {:?} {:?}", a, b, c),
-            Instruction::Gtri(a, b, c) => write!(f, "gtri {:?} {:?} {:?}", a, b, c),
-            Instruction::Gtrr(a, b, c) => write!(f, "gtrr {:?} {:?} {:?}", a, b, c),
-            Instruction::Eqir(a, b, c) => write!(f, "eqir {:?} {:?} {:?}", a, b, c),
-            Instruction::Eqri(a, b, c) => write!(f, "eqri {:?} {:?} {:?}", a, b, c),
-            Instruction::Eqrr(a, b, c) => write!(f, "eqrr {:?} {:?} {:?}", a, b, c),
+            Instruction::Gtir(a, b, c) => {
+                write!(f, "gtir {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Gtri(a, b, c) => {
+                write!(f, "gtri {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Gtrr(a, b, c) => {
+                write!(f, "gtrr {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Eqir(a, b, c) => {
+                write!(f, "eqir {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Eqri(a, b, c) => {
+                write!(f, "eqri {:?} {:?} {:?}", a, b, c)
+            }
+            Instruction::Eqrr(a, b, c) => {
+                write!(f, "eqrr {:?} {:?} {:?}", a, b, c)
+            }
         }
     }
 }
@@ -177,52 +236,84 @@ impl fmt::Display for Instruction {
 type InstructionFn = fn(Number, Number, Number) -> Instruction;
 
 impl Instruction {
-    fn addr(a: Number, b: Number, c: Number) -> Self { Instruction::Addr(a.into(), b.into(), c.into()) }
-    fn addi(a: Number, b: Number, c: Number) -> Self { Instruction::Addi(a.into(), b.into(), c.into()) }
-    fn mulr(a: Number, b: Number, c: Number) -> Self { Instruction::Mulr(a.into(), b.into(), c.into()) }
-    fn muli(a: Number, b: Number, c: Number) -> Self { Instruction::Muli(a.into(), b.into(), c.into()) }
-    fn banr(a: Number, b: Number, c: Number) -> Self { Instruction::Banr(a.into(), b.into(), c.into()) }
-    fn bani(a: Number, b: Number, c: Number) -> Self { Instruction::Bani(a.into(), b.into(), c.into()) }
-    fn borr(a: Number, b: Number, c: Number) -> Self { Instruction::Borr(a.into(), b.into(), c.into()) }
-    fn bori(a: Number, b: Number, c: Number) -> Self { Instruction::Bori(a.into(), b.into(), c.into()) }
-    fn setr(a: Number, b: Number, c: Number) -> Self { Instruction::Setr(a.into(), b.into(), c.into()) }
-    fn seti(a: Number, b: Number, c: Number) -> Self { Instruction::Seti(a.into(), b.into(), c.into()) }
-    fn gtir(a: Number, b: Number, c: Number) -> Self { Instruction::Gtir(a.into(), b.into(), c.into()) }
-    fn gtri(a: Number, b: Number, c: Number) -> Self { Instruction::Gtri(a.into(), b.into(), c.into()) }
-    fn gtrr(a: Number, b: Number, c: Number) -> Self { Instruction::Gtrr(a.into(), b.into(), c.into()) }
-    fn eqir(a: Number, b: Number, c: Number) -> Self { Instruction::Eqir(a.into(), b.into(), c.into()) }
-    fn eqri(a: Number, b: Number, c: Number) -> Self { Instruction::Eqri(a.into(), b.into(), c.into()) }
-    fn eqrr(a: Number, b: Number, c: Number) -> Self { Instruction::Eqrr(a.into(), b.into(), c.into()) }
+    fn addr(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Addr(a.into(), b.into(), c.into())
+    }
+    fn addi(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Addi(a.into(), b.into(), c.into())
+    }
+    fn mulr(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Mulr(a.into(), b.into(), c.into())
+    }
+    fn muli(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Muli(a.into(), b.into(), c.into())
+    }
+    fn banr(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Banr(a.into(), b.into(), c.into())
+    }
+    fn bani(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Bani(a.into(), b.into(), c.into())
+    }
+    fn borr(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Borr(a.into(), b.into(), c.into())
+    }
+    fn bori(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Bori(a.into(), b.into(), c.into())
+    }
+    fn setr(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Setr(a.into(), b.into(), c.into())
+    }
+    fn seti(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Seti(a.into(), b.into(), c.into())
+    }
+    fn gtir(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Gtir(a.into(), b.into(), c.into())
+    }
+    fn gtri(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Gtri(a.into(), b.into(), c.into())
+    }
+    fn gtrr(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Gtrr(a.into(), b.into(), c.into())
+    }
+    fn eqir(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Eqir(a.into(), b.into(), c.into())
+    }
+    fn eqri(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Eqri(a.into(), b.into(), c.into())
+    }
+    fn eqrr(a: Number, b: Number, c: Number) -> Self {
+        Instruction::Eqrr(a.into(), b.into(), c.into())
+    }
 
     fn to_ctor(&self) -> InstructionFn {
         match self {
-            Instruction::Addr(_,_,_) => Instruction::addr,
-            Instruction::Addi(_,_,_) => Instruction::addi,
-            Instruction::Mulr(_,_,_) => Instruction::mulr,
-            Instruction::Muli(_,_,_) => Instruction::muli,
-            Instruction::Banr(_,_,_) => Instruction::banr,
-            Instruction::Bani(_,_,_) => Instruction::bani,
-            Instruction::Borr(_,_,_) => Instruction::borr,
-            Instruction::Bori(_,_,_) => Instruction::bori,
-            Instruction::Setr(_,_,_) => Instruction::setr,
-            Instruction::Seti(_,_,_) => Instruction::seti,
-            Instruction::Gtir(_,_,_) => Instruction::gtir,
-            Instruction::Gtri(_,_,_) => Instruction::gtri,
-            Instruction::Gtrr(_,_,_) => Instruction::gtrr,
-            Instruction::Eqir(_,_,_) => Instruction::eqir,
-            Instruction::Eqri(_,_,_) => Instruction::eqri,
-            Instruction::Eqrr(_,_,_) => Instruction::eqrr,
+            Instruction::Addr(_, _, _) => Instruction::addr,
+            Instruction::Addi(_, _, _) => Instruction::addi,
+            Instruction::Mulr(_, _, _) => Instruction::mulr,
+            Instruction::Muli(_, _, _) => Instruction::muli,
+            Instruction::Banr(_, _, _) => Instruction::banr,
+            Instruction::Bani(_, _, _) => Instruction::bani,
+            Instruction::Borr(_, _, _) => Instruction::borr,
+            Instruction::Bori(_, _, _) => Instruction::bori,
+            Instruction::Setr(_, _, _) => Instruction::setr,
+            Instruction::Seti(_, _, _) => Instruction::seti,
+            Instruction::Gtir(_, _, _) => Instruction::gtir,
+            Instruction::Gtri(_, _, _) => Instruction::gtri,
+            Instruction::Gtrr(_, _, _) => Instruction::gtrr,
+            Instruction::Eqir(_, _, _) => Instruction::eqir,
+            Instruction::Eqri(_, _, _) => Instruction::eqri,
+            Instruction::Eqrr(_, _, _) => Instruction::eqrr,
         }
     }
 
     fn is_comparison(&self) -> bool {
         match self {
-            Instruction::Gtir(_,_,_) => true,
-            Instruction::Gtri(_,_,_) => true,
-            Instruction::Gtrr(_,_,_) => true,
-            Instruction::Eqir(_,_,_) => true,
-            Instruction::Eqri(_,_,_) => true,
-            Instruction::Eqrr(_,_,_) => true,
+            Instruction::Gtir(_, _, _) => true,
+            Instruction::Gtri(_, _, _) => true,
+            Instruction::Gtrr(_, _, _) => true,
+            Instruction::Eqir(_, _, _) => true,
+            Instruction::Eqri(_, _, _) => true,
+            Instruction::Eqrr(_, _, _) => true,
 
             _ => false,
         }
@@ -232,15 +323,22 @@ impl Instruction {
 impl FromStr for Instruction {
     type Err = CustomError;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let values: Vec<&str> = s.trim_matches(|p| p == '[' || p == ']' )
-                                 .split(' ')
-                                 .map(|s| s.trim())
-                                 .collect();
+        let values: Vec<&str> = s
+            .trim_matches(|p| p == '[' || p == ']')
+            .split(' ')
+            .map(|s| s.trim())
+            .collect();
 
         let inst = values[0];
-        let a = values[1].parse::<Number>().map_err(|_| CustomError("Invalid value".to_string()))?;
-        let b = values[2].parse::<Number>().map_err(|_| CustomError("Invalid value".to_string()))?;
-        let c = values[3].parse::<Number>().map_err(|_| CustomError("Invalid value".to_string()))?;
+        let a = values[1]
+            .parse::<Number>()
+            .map_err(|_| CustomError("Invalid value".to_string()))?;
+        let b = values[2]
+            .parse::<Number>()
+            .map_err(|_| CustomError("Invalid value".to_string()))?;
+        let c = values[3]
+            .parse::<Number>()
+            .map_err(|_| CustomError("Invalid value".to_string()))?;
 
         match inst {
             "addr" => Ok(Instruction::addr(a, b, c)),
@@ -264,7 +362,6 @@ impl FromStr for Instruction {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Default)]
 struct Registers([Number; 6]);
 
@@ -287,7 +384,7 @@ struct Machine {
     registers: Registers,
     ip_reg: Option<Reg>,
     ip: usize,
-    code: Vec<Instruction>
+    code: Vec<Instruction>,
 }
 
 impl Machine {
@@ -317,7 +414,7 @@ impl Machine {
         self.code = code;
     }
 
-    fn set_ip_reg(&mut self, reg: usize)  {
+    fn set_ip_reg(&mut self, reg: usize) {
         self.ip_reg = Some(Reg(reg as Number));
     }
 
@@ -349,7 +446,7 @@ impl Machine {
 
             if reg_val != self.ip {
                 self.ip = reg_val;
-                // self.ip += 1;
+            // self.ip += 1;
             } else {
                 // self.ip += 1;
             }
@@ -415,12 +512,10 @@ impl Machine {
         // eprintln!("Here {:?}", c);
         // eprintln!("Here {:?}", stuff);
 
-
         Ok(())
     }
 
     fn skip(&mut self) -> Result<()> {
-
         /*
         let mut r1 = 1;
         let mut r3 = 996;
@@ -455,7 +550,7 @@ impl Machine {
 
         self.registers[r1] = 1;
         self.registers[r3] = 10_551_396; //996;
-        // self.registers[r3] = 996; //996;
+                                         // self.registers[r3] = 996; //996;
         self.registers[r0] = 0;
         self.registers[r4] = 0;
 
@@ -471,11 +566,9 @@ impl Machine {
 
         self.registers[r5] = 1;
         while self.registers[r1] <= self.registers[r3] {
-
             // if r5 * r1 == r3 -> r0 = r0 + r1
 
             // let step = self.registers[r3] / self.registers[r1];
-
 
             // self.registers[r5] = self.registers[r5] + step;
 
@@ -483,7 +576,7 @@ impl Machine {
             self.registers[r5] = step;
 
             if self.registers[r5] * self.registers[r1] == self.registers[r3] {
-                self.registers[r0] =  self.registers[r0] + self.registers[r1];
+                self.registers[r0] = self.registers[r0] + self.registers[r1];
                 // eprintln!("A: {:?}", self.registers);
             }
 
@@ -500,7 +593,7 @@ impl Machine {
             // }
             // eprintln!("{: <3} B: {:?}", step, self.registers);
 
-            self.registers[r1] =  self.registers[r1] + 1;
+            self.registers[r1] = self.registers[r1] + 1;
         }
 
         Ok(())
@@ -528,7 +621,6 @@ impl Machine {
             }
             let inst = self.code[ip];
 
-
             // eprintln!("Before {:?}", self.registers);
 
             // eprintln!("Executing {} -> {:?}", ip, inst);
@@ -537,7 +629,7 @@ impl Machine {
             self.move_ip();
 
             // if self.registers[Reg(0)] > 2000 && self.registers[Reg(5)] > 980 {
-                /*
+            /*
             if self.registers[Reg(0)] != prev || prev1 != self.registers[Reg(1)]
                 || self.registers[Reg(1)] == self.registers[Reg(5)]
                 || self.registers[Reg(4)] == self.registers[Reg(3)]
@@ -551,7 +643,11 @@ impl Machine {
             }
             */
 
-            if ip == 28 || ip == 10 || ip == 13 || prev1 != self.registers[Reg(1)] {
+            if ip == 28
+                || ip == 10
+                || ip == 13
+                || prev1 != self.registers[Reg(1)]
+            {
                 prev1 = self.registers[Reg(1)];
                 // writeln!(handle, "{: <3}: {:?} {:?} {:?}", ip, before, inst, self.registers)?;
             }
@@ -561,10 +657,8 @@ impl Machine {
                     writeln!(handle, "Loop {:?}", self.registers[Reg(1)])?;
                     writeln!(handle, "{:?}", set)?;
                 }
-                if !set.insert(self.registers[Reg(1)]) {
-                }
+                if !set.insert(self.registers[Reg(1)]) {}
             }
-
 
             if c >= 10000 {
                 // writeln!(handle, "{:?}", set)?;
@@ -578,7 +672,6 @@ impl Machine {
 
             // eprintln!("After {:?}", self.registers);
             // eprintln!();
-
         }
         Ok(())
     }
@@ -589,76 +682,76 @@ impl Machine {
         match instr {
             Addr(a, b, c) => {
                 self.registers[c] = self.registers[a] + self.registers[b];
-            },
+            }
             Addi(a, b, c) => {
                 self.registers[c] = self.registers[a] + b.0;
-            },
+            }
             Mulr(a, b, c) => {
                 self.registers[c] = self.registers[a] * self.registers[b];
-            },
+            }
             Muli(a, b, c) => {
                 self.registers[c] = self.registers[a] * b.0;
-            },
+            }
             Banr(a, b, c) => {
                 self.registers[c] = self.registers[a] & self.registers[b];
-            },
+            }
             Bani(a, b, c) => {
                 self.registers[c] = self.registers[a] & b.0;
-            },
+            }
             Borr(a, b, c) => {
                 self.registers[c] = self.registers[a] | self.registers[b];
-            },
+            }
             Bori(a, b, c) => {
                 self.registers[c] = self.registers[a] | b.0;
-            },
+            }
             Setr(a, _b, c) => {
                 self.registers[c] = self.registers[a];
-            },
+            }
             Seti(a, _b, c) => {
                 self.registers[c] = a.0;
-            },
+            }
             Gtir(a, b, c) => {
                 if a.0 > self.registers[b] {
                     self.registers[c] = 1;
                 } else {
                     self.registers[c] = 0;
                 }
-            },
+            }
             Gtri(a, b, c) => {
                 if self.registers[a] > b.0 {
                     self.registers[c] = 1;
                 } else {
                     self.registers[c] = 0;
                 }
-            },
+            }
             Gtrr(a, b, c) => {
                 if self.registers[a] > self.registers[b] {
                     self.registers[c] = 1;
                 } else {
                     self.registers[c] = 0;
                 }
-            },
+            }
             Eqir(a, b, c) => {
                 if a.0 == self.registers[b] {
                     self.registers[c] = 1;
                 } else {
                     self.registers[c] = 0;
                 }
-            },
+            }
             Eqri(a, b, c) => {
                 if self.registers[a] == b.0 {
                     self.registers[c] = 1;
                 } else {
                     self.registers[c] = 0;
                 }
-            },
+            }
             Eqrr(a, b, c) => {
                 if self.registers[a] == self.registers[b] {
                     self.registers[c] = 1;
                 } else {
                     self.registers[c] = 0;
                 }
-            },
+            }
         }
 
         Ok(())

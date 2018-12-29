@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-use aoc::{Result, CustomError};
-use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
+use aoc::{CustomError, Result};
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet, BTreeSet, VecDeque};
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
 type GenId = u32;
 
@@ -29,12 +29,7 @@ impl fmt::Debug for Vector2 {
 
 impl Vector2 {
     fn around(&self) -> [Vector2; 4] {
-        [
-            self.left(),
-            self.right(),
-            self.down(),
-            self.up(),
-        ]
+        [self.left(), self.right(), self.down(), self.up()]
     }
 
     fn up(&self) -> Self {
@@ -121,7 +116,6 @@ impl AddAssign for Vector2 {
     }
 }
 
-
 impl std::convert::From<(i32, i32)> for Vector2 {
     fn from(v: (i32, i32)) -> Self {
         Vector2 { x: v.0, y: v.1 }
@@ -130,7 +124,10 @@ impl std::convert::From<(i32, i32)> for Vector2 {
 
 impl std::convert::From<(usize, usize)> for Vector2 {
     fn from(v: (usize, usize)) -> Self {
-        Vector2 { x: v.0 as i32, y: v.1 as i32 }
+        Vector2 {
+            x: v.0 as i32,
+            y: v.1 as i32,
+        }
     }
 }
 
@@ -164,7 +161,10 @@ impl IndexAllocator {
                 generation: 0,
             });
 
-            Index { index, generation: 0, }
+            Index {
+                index,
+                generation: 0,
+            }
         } else {
             // Take the last index
             let index = self.free.pop().unwrap();
@@ -195,11 +195,11 @@ impl IndexAllocator {
     }
 
     fn is_live(&self, index: Index) -> bool {
-        self.entries.get(index.index)
+        self.entries
+            .get(index.index)
             .filter(|i| i.generation == index.generation)
             .map(|v| v.is_live)
             .unwrap_or(false)
-
     }
 }
 
@@ -239,7 +239,8 @@ impl<T> GenerationArray<T> {
 
     // Gets the value for some generational index, the generation must match.
     pub fn get(&self, index: Index) -> Option<&T> {
-        self.entries.get(index.index)
+        self.entries
+            .get(index.index)
             .filter(|entry| entry.is_some())
             .map(|entry| entry.as_ref().unwrap())
             .filter(|i| i.generation == index.generation)
@@ -247,7 +248,8 @@ impl<T> GenerationArray<T> {
     }
 
     pub fn get_mut(&mut self, index: Index) -> Option<&mut T> {
-        self.entries.get_mut(index.index)
+        self.entries
+            .get_mut(index.index)
             .filter(|entry| entry.is_some())
             .map(|entry| entry.as_mut().unwrap())
             .filter(|i| i.generation == index.generation)
@@ -255,7 +257,8 @@ impl<T> GenerationArray<T> {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &T> {
-        self.entries.iter()
+        self.entries
+            .iter()
             .filter(|entry| entry.is_some())
             .map(|entry| entry.as_ref().unwrap())
             .map(|entry| &entry.value)
@@ -277,7 +280,6 @@ fn part1(s: &str) -> Result<i32> {
     map.sort_entities();
     map.render();
 
-
     let mut round = 1;
 
     loop {
@@ -291,7 +293,6 @@ fn part1(s: &str) -> Result<i32> {
 
         map.sort_entities();
 
-
         round += 1;
     }
 
@@ -303,14 +304,17 @@ fn part1(s: &str) -> Result<i32> {
 
     let total_hp = map.total_hp();
 
-    eprintln!("part1: Round {} hp {} total {}", last_round, total_hp, last_round * total_hp);
+    eprintln!(
+        "part1: Round {} hp {} total {}",
+        last_round,
+        total_hp,
+        last_round * total_hp
+    );
 
     Ok(last_round * total_hp)
 }
 
 fn part2(s: &str) -> Result<i32> {
-
-
     let mut ap: i32 = 4;
 
     let (round, hp) = loop {
@@ -345,10 +349,14 @@ fn part2(s: &str) -> Result<i32> {
     let last_round = round as i32 - 1;
     let total_hp = hp;
 
-    eprintln!("part2: Round {} hp {} total {}", last_round, total_hp, last_round * total_hp);
+    eprintln!(
+        "part2: Round {} hp {} total {}",
+        last_round,
+        total_hp,
+        last_round * total_hp
+    );
 
     Ok(last_round * total_hp)
-
 }
 
 fn manhattan_distance(a: &Vector2, b: &Vector2) -> usize {
@@ -356,7 +364,6 @@ fn manhattan_distance(a: &Vector2, b: &Vector2) -> usize {
 }
 
 fn read_map(s: &str, elf_ap: i32) -> Result<World> {
-
     let mut world = World::empty();
 
     let mut grid = Vec::new();
@@ -372,13 +379,13 @@ fn read_map(s: &str, elf_ap: i32) -> Result<World> {
                     row.push(Tile::Empty);
 
                     world.add_goblin_at((ind, linenr).into());
-                },
+                }
                 'E' => {
                     // TODO Elf
                     row.push(Tile::Empty);
 
                     world.add_elf_at((ind, linenr).into(), elf_ap);
-                },
+                }
                 _ => return Err(CustomError("Invalid map".into()).into()),
             }
         }
@@ -405,7 +412,9 @@ enum EntityType {
 }
 
 impl Default for EntityType {
-    fn default() -> Self { EntityType::Elf }
+    fn default() -> Self {
+        EntityType::Elf
+    }
 }
 
 impl EntityType {
@@ -440,10 +449,15 @@ impl Tile {
 }
 
 impl Default for Tile {
-    fn default() -> Self { Tile::Empty }
+    fn default() -> Self {
+        Tile::Empty
+    }
 }
 
-fn reconstruct_path(came_from: HashMap<Vector2, Vector2>, mut current: Vector2) -> Vec<Vector2> {
+fn reconstruct_path(
+    came_from: HashMap<Vector2, Vector2>,
+    mut current: Vector2,
+) -> Vec<Vector2> {
     let mut path = vec![current];
 
     while let Some(cur) = came_from.get(&current) {
@@ -482,8 +496,7 @@ fn index(w: usize, v: Vector2) -> usize {
 }
 
 fn is_inside(w: usize, h: usize, v: Vector2) -> bool {
-    (v.x >= 0 && v.x < w as i32)
-    && (v.y >= 0 && v.y < h as i32)
+    (v.x >= 0 && v.x < w as i32) && (v.y >= 0 && v.y < h as i32)
 }
 
 impl World {
@@ -511,8 +524,8 @@ impl World {
         if is_inside(self.width, self.height, pos) {
             let index = index(self.width, pos);
             if self.tiles[index] == Tile::Empty {
-                let any_pos = self.position_components.iter()
-                    .any(|&p| p == pos);
+                let any_pos =
+                    self.position_components.iter().any(|&p| p == pos);
 
                 !any_pos
             } else {
@@ -524,10 +537,7 @@ impl World {
     }
 
     fn total_hp(&self) -> i32 {
-        self.health_components
-            .iter()
-            .filter(|hp| **hp > 0)
-            .sum()
+        self.health_components.iter().filter(|hp| **hp > 0).sum()
     }
 
     // fn increment_elf_power(&mut self) {
@@ -536,9 +546,7 @@ impl World {
     //         ;
     // }
 
-
     fn update(&mut self, early: bool) -> bool {
-
         let entities: Vec<_> = self.entities.iter().cloned().collect();
 
         for entity in entities {
@@ -571,20 +579,22 @@ impl World {
                         // self.entity_move_towards(attacker, *target);
                         self.entity_move_on_path(entity, &path);
 
-                        if let Some(new_target) = self.find_target_in_range(entity) {
+                        if let Some(new_target) =
+                            self.find_target_in_range(entity)
+                        {
                             self.entity_attack(entity, new_target);
                         }
                     }
                 }
             }
-
         }
 
         false
     }
 
     fn is_alive(&self, entity: Entity) -> bool {
-        self.health_components.get(entity)
+        self.health_components
+            .get(entity)
             .map(|hp| *hp > 0)
             .unwrap_or(false)
     }
@@ -593,10 +603,17 @@ impl World {
         if let Some(tp) = self.type_components.get(entity) {
             let enemy_type = tp.enemy_type();
 
-            let possible_targets_count = self.entities.iter()
+            let possible_targets_count = self
+                .entities
+                .iter()
                 .filter(|&e| self.type_components.get(*e) == Some(&enemy_type))
                 .filter(|&e| self.position_components.get(*e).is_some())
-                .filter(|&e| self.health_components.get(*e).map(|hp| *hp > 0).unwrap_or(false))
+                .filter(|&e| {
+                    self.health_components
+                        .get(*e)
+                        .map(|hp| *hp > 0)
+                        .unwrap_or(false)
+                })
                 .count();
 
             possible_targets_count > 0
@@ -606,7 +623,6 @@ impl World {
     }
 
     fn remove_entity(&mut self, entity: Entity) {
-
         if let Some(index) = self.entities.iter().position(|x| *x == entity) {
             eprintln!("Removing {:?}", entity);
 
@@ -650,7 +666,11 @@ impl World {
         eprintln!("{}: {}", pref, self.entity_to_string(entity));
     }
 
-    fn find_best_node(&self, start: Vector2, candidates: &[Vector2]) -> Option<Vector2> {
+    fn find_best_node(
+        &self,
+        start: Vector2,
+        candidates: &[Vector2],
+    ) -> Option<Vector2> {
         let mut q: VecDeque<Vector2> = VecDeque::new();
         q.push_back(start);
 
@@ -680,7 +700,10 @@ impl World {
                 if !distances.contains_key(&neighbour) {
                     possible.insert(*neighbour);
                     q.push_back(*neighbour);
-                    distances.insert(*neighbour, 1 + distances.get(&current).unwrap());
+                    distances.insert(
+                        *neighbour,
+                        1 + distances.get(&current).unwrap(),
+                    );
                     came_from.insert(*neighbour, current);
                 }
             }
@@ -692,25 +715,22 @@ impl World {
 
         let candidate_set: BTreeSet<_> = candidates.iter().cloned().collect();
 
-        let mut intersection: Vec<_> = possible.intersection(&candidate_set).collect();
+        let mut intersection: Vec<_> =
+            possible.intersection(&candidate_set).collect();
 
         intersection.sort_by(|a, b| {
             let a_dist = distances.get(a);
             let b_dist = distances.get(b);
 
             match a_dist.cmp(&b_dist) {
-                Ordering::Equal => {
-                    a.cmp(b)
-                },
+                Ordering::Equal => a.cmp(b),
                 other => other,
             }
-
         });
 
         // eprintln!("{} inters {:?}", start, intersection);
 
-        intersection.first()
-            .map(|p| **p)
+        intersection.first().map(|p| **p)
     }
 
     fn bfs(&self, start: Vector2, end: Vector2) -> Option<Vec<Vector2>> {
@@ -727,10 +747,17 @@ impl World {
         while !q.is_empty() {
             let current = q.pop_front().unwrap();
 
-            for neighbour in current.around().iter().filter(|p| self.is_free(**p) || **p == end) {
+            for neighbour in current
+                .around()
+                .iter()
+                .filter(|p| self.is_free(**p) || **p == end)
+            {
                 if !distances.contains_key(&neighbour) {
                     q.push_back(*neighbour);
-                    distances.insert(*neighbour, 1 + distances.get(&current).unwrap());
+                    distances.insert(
+                        *neighbour,
+                        1 + distances.get(&current).unwrap(),
+                    );
                     came_from.insert(*neighbour, current);
                 }
             }
@@ -746,7 +773,6 @@ impl World {
     }
 
     fn find_path(&self, start: Vector2, end: Vector2) -> Option<Vec<Vector2>> {
-
         fn heuristic(a: &Vector2, b: &Vector2) -> usize {
             let dx = (b.x - a.x).abs() as usize;
             let dy = (b.y - a.y).abs() as usize;
@@ -770,9 +796,7 @@ impl World {
                 let bscore = f_score.get(b).unwrap_or(&usize::max_value());
 
                 match ascore.cmp(&bscore).reverse() {
-                    Ordering::Equal => {
-                        a.cmp(b).reverse()
-                    },
+                    Ordering::Equal => a.cmp(b).reverse(),
                     other => other,
                 }
             });
@@ -787,12 +811,17 @@ impl World {
 
             closed_set.insert(current);
 
-            for neighbour in current.around().iter().filter(|p| self.is_free(**p) || **p == end) {
+            for neighbour in current
+                .around()
+                .iter()
+                .filter(|p| self.is_free(**p) || **p == end)
+            {
                 if closed_set.contains(&neighbour) {
                     continue;
                 }
 
-                let possible_g_score = g_score[&current] + heuristic(&current, &neighbour);
+                let possible_g_score =
+                    g_score[&current] + heuristic(&current, &neighbour);
 
                 if open_set.iter().position(|x| *x == *neighbour).is_none() {
                     open_set.push(*neighbour);
@@ -806,7 +835,10 @@ impl World {
                 came_from.insert(*neighbour, current);
 
                 g_score.insert(*neighbour, possible_g_score);
-                f_score.insert(*neighbour, possible_g_score + heuristic(neighbour, &end));
+                f_score.insert(
+                    *neighbour,
+                    possible_g_score + heuristic(neighbour, &end),
+                );
             }
         }
         None
@@ -830,12 +862,14 @@ impl World {
         }
     }
 
-
     fn entity_attack(&mut self, attacker: Entity, target: Entity) {
         // self.debug_entity("attacker", attacker);
         // self.debug_entity("target", target);
 
-        match (self.attack_components.get(attacker), self.health_components.get_mut(target)) {
+        match (
+            self.attack_components.get(attacker),
+            self.health_components.get_mut(target),
+        ) {
             (Some(attack), Some(hp)) => {
                 *hp -= attack;
 
@@ -843,21 +877,27 @@ impl World {
                     self.debug_entity("died", target);
                     self.remove_entity(target);
                 }
-            },
-            _ => {
             }
+            _ => {}
         }
     }
 
     fn entity_to_string(&self, entity: Entity) -> String {
         let mut buf = String::new();
 
-        match (self.position_components.get(entity),
-               self.type_components.get(entity),
-               self.health_components.get(entity)) {
-
+        match (
+            self.position_components.get(entity),
+            self.type_components.get(entity),
+            self.health_components.get(entity),
+        ) {
             (Some(pos), Some(r#type), Some(hp)) => {
-                buf.push_str(&format!("{}: {}({})@{}", entity.index, r#type.as_char(), hp, pos));
+                buf.push_str(&format!(
+                    "{}: {}({})@{}",
+                    entity.index,
+                    r#type.as_char(),
+                    hp,
+                    pos
+                ));
             }
 
             _ => {}
@@ -868,7 +908,8 @@ impl World {
 
     fn available_squares(&self, entity: Entity) -> Vec<Vector2> {
         if let Some(pos) = self.position_components.get(entity) {
-            pos.around().into_iter()
+            pos.around()
+                .into_iter()
                 .filter(|p| self.is_free(**p))
                 .map(|p| *p)
                 .collect()
@@ -878,39 +919,43 @@ impl World {
     }
 
     fn find_target_paths(&self, entity: Entity) -> Vec<(Entity, Vec<Vector2>)> {
-
-        match (self.type_components.get(entity), self.position_components.get(entity)) {
+        match (
+            self.type_components.get(entity),
+            self.position_components.get(entity),
+        ) {
             (Some(my_type), Some(my_pos)) => {
                 let enemy_type = my_type.enemy_type();
 
-                let available_squares: Vec<_> = self.entities.iter()
-                    .filter(|&e| self.type_components.get(*e) == Some(&enemy_type))
-                    .filter(|&e| self.position_components.get(*e).is_some())
-                    .flat_map(|e| {
-                        self.available_squares(*e)
+                let available_squares: Vec<_> = self
+                    .entities
+                    .iter()
+                    .filter(|&e| {
+                        self.type_components.get(*e) == Some(&enemy_type)
                     })
-                    .collect()
-                    ;
+                    .filter(|&e| self.position_components.get(*e).is_some())
+                    .flat_map(|e| self.available_squares(*e))
+                    .collect();
 
                 // eprintln!("Finding path for {} {}", entity.index, my_pos);
 
-                if let Some(target_node) = self.find_best_node(*my_pos, &available_squares) {
+                if let Some(target_node) =
+                    self.find_best_node(*my_pos, &available_squares)
+                {
                     // eprintln!("Target {}", target_node);
                     let my_available = self.available_squares(entity);
 
-                    if let Some(actual_node) = self.find_best_node(target_node, &my_available) {
+                    if let Some(actual_node) =
+                        self.find_best_node(target_node, &my_available)
+                    {
                         // eprintln!("{} moving to {} target {}", entity.index, actual_node, target_node);
                         // eprintln!("Movement {}", actual_node);
-                        return vec![
-                            ( entity, vec![actual_node],)
-                        ];
+                        return vec![(entity, vec![actual_node])];
                     }
                 }
 
                 vec![]
-
-            },
-            _ => vec![]
+            }
+            _ => vec![],
         }
     }
 
@@ -919,7 +964,9 @@ impl World {
         let my_pos = self.position_components.get(entity).unwrap();
         let enemy_type = my_type.enemy_type();
 
-        let mut possible_targets: Vec<_> = self.entities.iter()
+        let mut possible_targets: Vec<_> = self
+            .entities
+            .iter()
             .filter(|&e| self.type_components.get(*e) == Some(&enemy_type))
             .filter(|&e| self.position_components.get(*e).is_some())
             .filter(|&e| self.health_components.get(*e).is_some())
@@ -938,8 +985,7 @@ impl World {
                     None
                 }
             })
-            .collect()
-            ;
+            .collect();
 
         possible_targets.sort_by(|&(a, adist), &(b, bdist)| {
             match adist.cmp(&bdist) {
@@ -947,7 +993,7 @@ impl World {
                     let a_pos = self.position_components.get(a).unwrap();
                     let b_pos = self.position_components.get(b).unwrap();
                     a_pos.cmp(&b_pos)
-                },
+                }
                 other => other,
             }
         });
@@ -994,14 +1040,18 @@ impl World {
     fn render_to_string(&self) -> String {
         let mut buf = String::new();
 
-        let mut chars: Vec<char> = self.tiles.iter().map(Tile::as_char).collect();
+        let mut chars: Vec<char> =
+            self.tiles.iter().map(Tile::as_char).collect();
 
         for &entity in &self.entities {
-            match (self.position_components.get(entity), self.type_components.get(entity)) {
+            match (
+                self.position_components.get(entity),
+                self.type_components.get(entity),
+            ) {
                 (Some(pos), Some(tp)) => {
                     chars[index(self.width, *pos)] = tp.as_char();
-                },
-                _ => { }
+                }
+                _ => {}
             }
         }
 
@@ -1025,7 +1075,7 @@ impl World {
     }
 }
 
-macro_rules! impl_index  {
+macro_rules! impl_index {
     ($type: ty; $v: pat => $x: expr, $y: expr) => {
         impl std::ops::Index<$type> for World {
             type Output = Tile;
@@ -1040,11 +1090,9 @@ macro_rules! impl_index  {
 impl_index!((usize, usize); xy => xy.0, xy.1);
 impl_index!(Vector2; xy => xy.x, xy.y);
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn part1_example_inputs() {
@@ -1166,9 +1214,7 @@ mod tests {
         assert_eq!(34 * 301, part1(sample1.trim()).unwrap());
         assert_eq!(33 * 301, part1(sample2.trim()).unwrap());
         assert_eq!(34 * 301, part1(sample3.trim()).unwrap());
-
     }
-
 
     #[test]
     fn part2_example_input() {
@@ -1215,6 +1261,5 @@ mod tests {
         assert_eq!(33 * 948, part2(example2.trim()).unwrap());
         assert_eq!(37 * 94, part2(example3.trim()).unwrap());
         assert_eq!(30 * 38, part2(example5.trim()).unwrap());
-
     }
 }

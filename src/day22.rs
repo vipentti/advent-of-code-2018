@@ -1,7 +1,7 @@
 #![allow(dead_code)]
-use aoc::{Result, Vector2, ToIndex};
+use aoc::{Result, ToIndex, Vector2};
 
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -23,9 +23,7 @@ fn part1(s: &str) -> Result<usize> {
             depth = input.parse::<i32>()?;
         } else if ind == 1 {
             let input = line.replace("target: ", "");
-            let parts: Vec<&str> = input.split(",")
-                        .map(|s| s.trim())
-                        .collect();
+            let parts: Vec<&str> = input.split(",").map(|s| s.trim()).collect();
 
             target_x = parts[0].parse::<i32>()?;
             target_y = parts[1].parse::<i32>()?;
@@ -34,8 +32,8 @@ fn part1(s: &str) -> Result<usize> {
 
     let target: Vector2 = (target_x, target_y).into();
 
-
-    let mut grid = Grid::new(target.x as usize + 1, target.y as usize + 1, depth as usize);
+    let mut grid =
+        Grid::new(target.x as usize + 1, target.y as usize + 1, depth as usize);
 
     let risk = grid.calculate(target);
 
@@ -58,9 +56,7 @@ fn part2(s: &str) -> Result<usize> {
             depth = input.parse::<i32>()?;
         } else if ind == 1 {
             let input = line.replace("target: ", "");
-            let parts: Vec<&str> = input.split(",")
-                        .map(|s| s.trim())
-                        .collect();
+            let parts: Vec<&str> = input.split(",").map(|s| s.trim()).collect();
 
             target_x = parts[0].parse::<i32>()?;
             target_y = parts[1].parse::<i32>()?;
@@ -68,7 +64,6 @@ fn part2(s: &str) -> Result<usize> {
     }
 
     let target: Vector2 = (target_x, target_y).into();
-
 
     let mut grid = Grid::new(400, target.y as usize * 2, depth as usize);
 
@@ -88,7 +83,7 @@ enum Tile {
     Wet,
     Narrow,
     Mouth,
-    Target
+    Target,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -111,7 +106,9 @@ impl Tile {
 }
 
 impl Default for Tile {
-    fn default() -> Self { Tile::Rocky }
+    fn default() -> Self {
+        Tile::Rocky
+    }
 }
 
 fn manhattan_distance(a: &Vector2, b: &Vector2) -> usize {
@@ -145,8 +142,7 @@ impl Grid {
             for x in 0..self.width {
                 let index = (x, y).to_index(self.width);
                 let g_index = {
-                    if (x == 0 && y == 0)
-                        || target == (x, y) {
+                    if (x == 0 && y == 0) || target == (x, y) {
                         0
                     } else if y == 0 {
                         x * 16807
@@ -159,9 +155,7 @@ impl Grid {
                         self.erosion[e1] * self.erosion[e2]
                     }
                 };
-                let erosion = {
-                    (g_index + self.depth) % 20183
-                };
+                let erosion = { (g_index + self.depth) % 20183 };
 
                 self.geologic[index] = g_index;
                 self.erosion[index] = erosion;
@@ -189,21 +183,12 @@ impl Grid {
                 let index = (x, y).to_index(self.width);
 
                 let risk = match self.data[index] {
-                    Tile::Rocky |
-                    Tile::Mouth |
-                    Tile::Target => {
-                        0
-                    },
-                    Tile::Wet => {
-                        1
-                    },
-                    Tile::Narrow => {
-                        2
-                    },
+                    Tile::Rocky | Tile::Mouth | Tile::Target => 0,
+                    Tile::Wet => 1,
+                    Tile::Narrow => 2,
                 };
 
                 risk_level += risk;
-
             }
         }
 
@@ -241,7 +226,6 @@ impl Grid {
 
                 _ => false,
             }
-
         } else {
             false
         }
@@ -251,9 +235,7 @@ impl Grid {
         let mut gears = Vec::new();
 
         for g in &[Gear::Torch, Gear::Climbing, Gear::Neither] {
-            if self.gear_is_valid(*g, from)
-                && self.gear_is_valid(*g, to)
-            {
+            if self.gear_is_valid(*g, from) && self.gear_is_valid(*g, to) {
                 gears.push(*g);
             }
         }
@@ -262,8 +244,10 @@ impl Grid {
     }
 
     fn find_path(&self, start: Vector2, end: Vector2) {
-
-        fn reconstruct_path(came_from: &HashMap<(Vector2, Gear), (Vector2, Gear)>, mut current: (Vector2, Gear)) -> Vec<(Vector2, Gear)> {
+        fn reconstruct_path(
+            came_from: &HashMap<(Vector2, Gear), (Vector2, Gear)>,
+            mut current: (Vector2, Gear),
+        ) -> Vec<(Vector2, Gear)> {
             let mut path = vec![current];
 
             while let Some(cur) = came_from.get(&current) {
@@ -281,9 +265,7 @@ impl Grid {
         fn count_path_duration(path: &[(Vector2, Gear)]) -> usize {
             let mut duration = 0;
 
-
             for index in 0..(path.len() - 1) {
-
                 let (_, g1) = path[index];
                 let (_, g2) = path[index + 1];
 
@@ -293,7 +275,6 @@ impl Grid {
                     duration += 7;
                     duration += 1;
                 }
-
             }
 
             duration
@@ -310,7 +291,8 @@ impl Grid {
         let mut closed_set: HashSet<(Vector2, Gear)> = HashSet::new();
         let mut open_set = vec![(start, Gear::Torch)];
 
-        let mut came_from: HashMap<(Vector2, Gear), (Vector2, Gear)> = HashMap::new();
+        let mut came_from: HashMap<(Vector2, Gear), (Vector2, Gear)> =
+            HashMap::new();
 
         eprintln!("{:?}", g_score);
 
@@ -320,9 +302,7 @@ impl Grid {
                 let bscore = f_score.get(b).unwrap_or(&usize::max_value());
 
                 match ascore.cmp(&bscore).reverse() {
-                    std::cmp::Ordering::Equal => {
-                        a.cmp(b).reverse()
-                    },
+                    std::cmp::Ordering::Equal => a.cmp(b).reverse(),
                     other => other,
                 }
             });
@@ -337,13 +317,13 @@ impl Grid {
 
             closed_set.insert((current, gear));
 
-
-            let current_score = if let Some(score) = g_score.get(&(current, gear)) {
-                *score
-            } else {
-                eprintln!("{:?}", g_score);
-                panic!("Missing score");
-            };
+            let current_score =
+                if let Some(score) = g_score.get(&(current, gear)) {
+                    *score
+                } else {
+                    eprintln!("{:?}", g_score);
+                    panic!("Missing score");
+                };
 
             for nbr in current.around().into_iter() {
                 if !self.is_walkable(*nbr) {
@@ -373,7 +353,8 @@ impl Grid {
 
                 came_from.insert((nbr, gear), (current, gear));
                 g_score.insert((nbr, gear), dist);
-                f_score.insert((nbr, gear), dist + manhattan_distance(&nbr, &end));
+                f_score
+                    .insert((nbr, gear), dist + manhattan_distance(&nbr, &end));
             }
 
             for ngear in self.next_gear(gear, current, current) {
@@ -399,7 +380,10 @@ impl Grid {
 
                 came_from.insert((current, ngear), (current, gear));
                 g_score.insert((current, ngear), dist);
-                f_score.insert((current, ngear), dist + manhattan_distance(&current, &end));
+                f_score.insert(
+                    (current, ngear),
+                    dist + manhattan_distance(&current, &end),
+                );
             }
         }
 

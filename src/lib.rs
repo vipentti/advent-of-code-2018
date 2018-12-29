@@ -96,20 +96,12 @@ pub struct Vector2 {
 
 impl Vector2 {
     pub fn new(x: i32, y: i32) -> Self {
-        Vector2 {
-            x,
-            y,
-        }
+        Vector2 { x, y }
     }
 
     /// [up, right, down, left]
     pub fn around(&self) -> [Vector2; 4] {
-        [
-            self.up(),
-            self.right(),
-            self.down(),
-            self.left(),
-        ]
+        [self.up(), self.right(), self.down(), self.left()]
     }
 
     pub fn up(&self) -> Self {
@@ -169,7 +161,10 @@ impl From<(i32, i32)> for Vector2 {
 
 impl std::convert::From<(usize, usize)> for Vector2 {
     fn from(v: (usize, usize)) -> Self {
-        Vector2 { x: v.0 as i32, y: v.1 as i32 }
+        Vector2 {
+            x: v.0 as i32,
+            y: v.1 as i32,
+        }
     }
 }
 
@@ -251,7 +246,6 @@ impl AddAssign<(i32, i32)> for Vector2 {
         *self = *self + other;
     }
 }
-
 
 pub trait ToIndex {
     fn to_index(self, width: usize) -> usize;

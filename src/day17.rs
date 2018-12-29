@@ -1,9 +1,9 @@
 #![allow(dead_code)]
-use aoc::{Result, Vector2, CustomError, ToIndex};
+use aoc::{CustomError, Result, ToIndex, Vector2};
 
-use std::collections::{HashSet, HashMap, VecDeque};
-use regex::Regex;
 use lazy_static::lazy_static;
+use regex::Regex;
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use std::ops::{Index, IndexMut};
 
@@ -24,7 +24,9 @@ enum Direction {
 }
 
 impl Default for Direction {
-    fn default() -> Self { Direction::Down }
+    fn default() -> Self {
+        Direction::Down
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -51,7 +53,9 @@ impl Tile {
 }
 
 impl Default for Tile {
-    fn default() -> Self { Tile::Sand }
+    fn default() -> Self {
+        Tile::Sand
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -80,11 +84,11 @@ impl Grid {
     }
 
     fn count_water(&self) -> usize {
-        self.data.iter()
+        self.data
+            .iter()
             .filter(|&&v| v == Tile::Flow || v == Tile::Rest)
             .count()
     }
-
 
     fn render_to_string(&self) -> String {
         assert!(!self.data.is_empty());
@@ -179,14 +183,13 @@ impl<T: ToIndex> IndexMut<T> for Grid {
 fn part1(s: &str) -> Result<i32> {
     let mut clay_locations = read_clay_locations(s)?;
     let mut spring: Vector2 = Vector2::new(500, 0);
-    let (_, c_min_y, _, _ ) = get_size_from(&clay_locations)?;
+    let (_, c_min_y, _, _) = get_size_from(&clay_locations)?;
 
     let mut temp_locations = clay_locations.clone();
     temp_locations.push(spring);
 
     let (mut min_x, min_y, max_x, max_y) = get_size_from(&temp_locations)?;
     min_x -= 1;
-
 
     let size_x = (max_x - min_x).abs() as usize + 1;
     let size_y = (max_y - min_y).abs() as usize + 1;
@@ -214,7 +217,6 @@ fn part1(s: &str) -> Result<i32> {
 
     grid[spring] = Tile::Spring;
 
-
     // display_grid(&grid);
 
     // for i in 0..=1_000_000 {
@@ -233,14 +235,12 @@ fn part1(s: &str) -> Result<i32> {
 
     eprintln!("count {}", grid.count_water());
 
-
-    let keys = waters.keys()
-        .filter(|&&v| v.y >= c_min_y)
-        .count();
+    let keys = waters.keys().filter(|&&v| v.y >= c_min_y).count();
     eprintln!("Water {}", waters.keys().count());
     eprintln!("Water keys {}", keys);
 
-    let resting = waters.iter()
+    let resting = waters
+        .iter()
         .filter(|(v, t)| v.y >= c_min_y && **t == Tile::Rest)
         .count();
     eprintln!("Resting keys {}", resting);
@@ -262,7 +262,6 @@ fn run_stream(spring: Vector2, grid: &mut Grid) -> HashMap<Vector2, Tile> {
 
         match dir {
             Direction::Down => {
-
                 while pos.y + 1 < grid.height as i32
                     && !is_resting(pos.down(), grid)
                 {
@@ -283,8 +282,9 @@ fn run_stream(spring: Vector2, grid: &mut Grid) -> HashMap<Vector2, Tile> {
 
             Direction::Up => {
                 // eprintln!("up {}", pos);
-                while let Some(range) = find_walls(pos, grid, floor_below(pos, grid)) {
-
+                while let Some(range) =
+                    find_walls(pos, grid, floor_below(pos, grid))
+                {
                     // eprintln!("Container {} {:?}", pos, range );
 
                     range.clone().for_each(|x| {
@@ -306,7 +306,7 @@ fn run_stream(spring: Vector2, grid: &mut Grid) -> HashMap<Vector2, Tile> {
                 if !q.contains(&(pos, Direction::Side)) {
                     q.push_back((pos, Direction::Side));
                 }
-            },
+            }
             Direction::Side => {
                 let floor = floor_below(pos, grid);
 
@@ -321,7 +321,10 @@ fn run_stream(spring: Vector2, grid: &mut Grid) -> HashMap<Vector2, Tile> {
                 let mut min_pos = pos;
                 let (start, end) = (*floor.start(), *floor.end());
 
-                while min_pos.x - 1 >= start - 1 && is_inside(min_pos, grid)  && !is_resting(min_pos.left(), grid) {
+                while min_pos.x - 1 >= start - 1
+                    && is_inside(min_pos, grid)
+                    && !is_resting(min_pos.left(), grid)
+                {
                     min_pos = min_pos.left();
                     waters.insert(min_pos, Tile::Flow);
                     grid.set(min_pos, Tile::Flow);
@@ -334,7 +337,10 @@ fn run_stream(spring: Vector2, grid: &mut Grid) -> HashMap<Vector2, Tile> {
                 // eprintln!("end {}", end + 1);
                 // eprintln!("rr {}", max_pos.x + 1);
 
-                while max_pos.x + 1 <= end + 1 && is_inside(max_pos, grid) && !is_resting(max_pos.right(), grid) {
+                while max_pos.x + 1 <= end + 1
+                    && is_inside(max_pos, grid)
+                    && !is_resting(max_pos.right(), grid)
+                {
                     max_pos = max_pos.right();
                     waters.insert(max_pos, Tile::Flow);
                     grid.set(max_pos, Tile::Flow);
@@ -342,16 +348,15 @@ fn run_stream(spring: Vector2, grid: &mut Grid) -> HashMap<Vector2, Tile> {
 
                 // eprintln!("max {}", max_pos);
 
-
-                if min_pos.x < start && !q.contains(&(min_pos, Direction::Down)) {
+                if min_pos.x < start && !q.contains(&(min_pos, Direction::Down))
+                {
                     q.push_back((min_pos, Direction::Down));
                 }
                 if max_pos.x > end && !q.contains(&(max_pos, Direction::Down)) {
                     q.push_back((max_pos, Direction::Down));
                 }
-            },
-            _ => {
             }
+            _ => {}
         }
     }
 
@@ -389,18 +394,16 @@ fn find_walls(v: Vector2, grid: &Grid, floor: Option<Range>) -> Option<Range> {
 
     //Some(floor)
     if min_pos.x >= *floor.start() && max_pos.x <= *floor.end() {
-            return Some(min_pos.x..=max_pos.x);
-        }
+        return Some(min_pos.x..=max_pos.x);
+    }
 
     None
 }
 
-
-fn floor_below(v: Vector2, grid: &Grid) -> Option<Range>{
+fn floor_below(v: Vector2, grid: &Grid) -> Option<Range> {
     let below = v.down();
 
     if is_resting(below, grid) {
-
         let mut min_pos = below;
 
         while is_resting(min_pos.left(), grid) {
@@ -413,7 +416,6 @@ fn floor_below(v: Vector2, grid: &Grid) -> Option<Range>{
             max_pos = max_pos.right();
         }
 
-
         return Some(min_pos.x..=max_pos.x);
     }
 
@@ -422,12 +424,11 @@ fn floor_below(v: Vector2, grid: &Grid) -> Option<Range>{
 
 fn is_inside(v: Vector2, grid: &Grid) -> bool {
     (v.x >= 0 && v.x < grid.width as i32)
-    && (v.y >= 0 && v.y < grid.height as i32)
+        && (v.y >= 0 && v.y < grid.height as i32)
 }
 
 fn is_resting(v: Vector2, grid: &Grid) -> bool {
-    grid.get(v) == Some(&Tile::Rest)
-    || grid.get(v) == Some(&Tile::Clay)
+    grid.get(v) == Some(&Tile::Rest) || grid.get(v) == Some(&Tile::Clay)
 }
 
 fn is_tile(v: Vector2, expected: Tile, grid: &Grid) -> bool {
@@ -444,7 +445,6 @@ fn is_not(v: Vector2, expected: Tile, grid: &Grid) -> bool {
 }
 
 fn is_full_of_water(mut row: Vector2, grid: &Grid) -> bool {
-
     if is_tile(row, Tile::Clay, grid) {
         return false;
     }
@@ -513,7 +513,6 @@ fn first_right(start: Vector2, grid: &Grid) -> Option<(Tile, Vector2)> {
 }
 
 fn last_non_clay_right(start: Vector2, grid: &Grid) -> Option<(Tile, Vector2)> {
-
     if start.y == grid.height as i32 - 1 {
         return None;
     }
@@ -550,7 +549,6 @@ fn is_at_edge(start: Vector2, grid: &Grid) -> bool {
 
     false
 }
-
 
 fn display_grid(grid: &Grid) {
     eprintln!("{}", grid.render_to_string());
@@ -609,37 +607,42 @@ fn read_clay_locations(s: &str) -> Result<Vec<Vector2>> {
             let name = caps.get(1).map_or("", |m| m.as_str());
             let range_start = caps.get(2).map_or("", |m| m.as_str());
             if let Some(end) = caps.get(3).map(|m| m.as_str()) {
-                let start = range_start.parse::<i32>()
-                    .map_err(|e| Box::new(e))?;
-                let end = end.parse::<i32>()
-                    .map_err(|e| Box::new(e))?;
+                let start =
+                    range_start.parse::<i32>().map_err(|e| Box::new(e))?;
+                let end = end.parse::<i32>().map_err(|e| Box::new(e))?;
                 match name {
                     "x" => {
                         x_values.extend(start..=end);
-                    },
+                    }
                     "y" => {
                         y_values.extend(start..=end);
-                    },
+                    }
                     v => {
-                        return Err(CustomError(format!("Unknown field {}", v)).into());
+                        return Err(
+                            CustomError(format!("Unknown field {}", v)).into()
+                        );
                     }
                 }
             } else {
                 match name {
                     "x" => {
-                        let x = range_start.parse::<i32>()
+                        let x = range_start
+                            .parse::<i32>()
                             .map_err(|e| Box::new(e))?;
 
                         x_values.push(x);
-                    },
+                    }
                     "y" => {
-                        let y = range_start.parse::<i32>()
+                        let y = range_start
+                            .parse::<i32>()
                             .map_err(|e| Box::new(e))?;
 
                         y_values.push(y);
-                    },
+                    }
                     v => {
-                        return Err(CustomError(format!("Unknown field {}", v)).into());
+                        return Err(
+                            CustomError(format!("Unknown field {}", v)).into()
+                        );
                     }
                 }
             }
@@ -653,14 +656,12 @@ fn read_clay_locations(s: &str) -> Result<Vec<Vector2>> {
             for y in y_values {
                 clay_locations.push((x, y).into());
             }
-
         } else if y_values.len() == 1 {
             let y = *y_values.first().unwrap();
 
             for x in x_values {
                 clay_locations.push((x, y).into());
             }
-
         } else {
             return Err(CustomError("invalid format".to_string()).into());
         }
@@ -668,7 +669,6 @@ fn read_clay_locations(s: &str) -> Result<Vec<Vector2>> {
 
     Ok(clay_locations)
 }
-
 
 #[cfg(test)]
 mod tests {

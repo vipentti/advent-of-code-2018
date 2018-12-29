@@ -1,9 +1,8 @@
-
-use aoc::{Result, CustomError};
+use aoc::{CustomError, Result};
 
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -13,7 +12,6 @@ fn main() -> Result<()> {
 
     Ok(())
 }
-
 
 fn part1(s: &str) -> Result<usize> {
     let mut teams: HashMap<Team, Vec<Group>> = HashMap::new();
@@ -36,25 +34,24 @@ fn part1(s: &str) -> Result<usize> {
             continue;
         }
 
-        let mut group = line.parse::<Group>()
-            .map_err(|_| CustomError(format!("Invalid capture at line {}", ind + 1)))?;
+        let mut group = line.parse::<Group>().map_err(|_| {
+            CustomError(format!("Invalid capture at line {}", ind + 1))
+        })?;
 
         group.team = current_team;
-        let len = teams.entry(current_team)
-            .or_insert_with(Vec::new)
-            .len();
+        let len = teams.entry(current_team).or_insert_with(Vec::new).len();
 
         group.id = len as i64 + 1;
 
         groups.push(group.clone());
 
-        teams.entry(current_team)
+        teams
+            .entry(current_team)
             .or_insert_with(Vec::new)
             .push(group);
     }
 
     // eprintln!("Groups: {:?}", groups);
-
 
     show_groups(&groups);
 
@@ -95,23 +92,22 @@ fn part2(s: &str) -> Result<i64> {
             continue;
         }
 
-        let mut group = line.parse::<Group>()
-            .map_err(|_| CustomError(format!("Invalid capture at line {}", ind + 1)))?;
+        let mut group = line.parse::<Group>().map_err(|_| {
+            CustomError(format!("Invalid capture at line {}", ind + 1))
+        })?;
 
         group.team = current_team;
-        let len = teams.entry(current_team)
-            .or_insert_with(Vec::new)
-            .len();
+        let len = teams.entry(current_team).or_insert_with(Vec::new).len();
 
         group.id = len as i64 + 1;
 
         groups.push(group.clone());
 
-        teams.entry(current_team)
+        teams
+            .entry(current_team)
             .or_insert_with(Vec::new)
             .push(group);
     }
-
 
     let original_groups = groups.clone();
 
@@ -163,7 +159,10 @@ fn part2(s: &str) -> Result<i64> {
     let mut max = 1_000_000;
 
     for step in &[100_000, 10_000, 1000, 100, 10, 5] {
-        match (find_min_boost(&original_groups, *step, min, max), find_max_boost(&original_groups, *step, min, max) ) {
+        match (
+            find_min_boost(&original_groups, *step, min, max),
+            find_max_boost(&original_groups, *step, min, max),
+        ) {
             (Some(mn), Some(mx)) => {
                 eprintln!("Step {} min {} max {}", step, mn, mx);
                 min = mn;
@@ -198,7 +197,6 @@ fn part2(s: &str) -> Result<i64> {
     // loop {
     //     let mut groups = original_groups.clone();
 
-
     //     // if run_with_boost(&mut groups, current_boost) {
     //     //     current_boost = current_boost / 2;
     //     // } else {
@@ -213,7 +211,12 @@ fn part2(s: &str) -> Result<i64> {
     Ok(units)
 }
 
-fn find_max_boost(original_groups: &Vec<Group>, step: i64, min: i64, max: i64) -> Option<i64> {
+fn find_max_boost(
+    original_groups: &Vec<Group>,
+    step: i64,
+    min: i64,
+    max: i64,
+) -> Option<i64> {
     let mut current_boost: i64 = max;
     let mut max_boost = i64::max_value();
     let mut prev = false;
@@ -238,7 +241,12 @@ fn find_max_boost(original_groups: &Vec<Group>, step: i64, min: i64, max: i64) -
     Some(max_boost)
 }
 
-fn find_min_boost(original_groups: &Vec<Group>, step: i64, min: i64, max: i64) -> Option<i64> {
+fn find_min_boost(
+    original_groups: &Vec<Group>,
+    step: i64,
+    min: i64,
+    max: i64,
+) -> Option<i64> {
     let mut current_boost: i64 = min;
     let mut min_boost = i64::max_value();
     let mut prev = false;
@@ -308,9 +316,8 @@ fn has_both(groups: &[Group]) -> bool {
 }
 
 fn show_groups(groups: &[Group]) {
-    let (immune, infection): (Vec<_>, Vec<_>) = groups.iter()
-        .partition(|g| g.team == Team::ImmuneSystem)
-        ;
+    let (immune, infection): (Vec<_>, Vec<_>) =
+        groups.iter().partition(|g| g.team == Team::ImmuneSystem);
     eprintln!();
     eprintln!("ImmuneSystem: ");
     for g in immune {
@@ -332,8 +339,7 @@ fn run_fight(groups: &mut Vec<Group>) {
 
     for group in groups.iter() {
         let e = enemies_for(group, &groups)
-            .filter(|e| !defend.contains_key(&(e.team, e.id)))
-            ;
+            .filter(|e| !defend.contains_key(&(e.team, e.id)));
 
         let es: Vec<_> = e.collect();
 
@@ -347,23 +353,20 @@ fn run_fight(groups: &mut Vec<Group>) {
 
     sort_groups_for_attack(groups);
 
-    let attackers: Vec<_> = groups.iter()
-        .map(|a| (a.team, a.id))
-        .collect();
-
+    let attackers: Vec<_> = groups.iter().map(|a| (a.team, a.id)).collect();
 
     for att in attackers {
         if let Some(target) = attack.get(&att) {
             // #[cfg(test)]
             // eprintln!("Attacker {:?} attacking {:?}", att, target);
 
-            let target_index = groups.iter()
+            let target_index = groups
+                .iter()
                 .position(|g| (g.team, g.id) == *target)
                 .unwrap();
 
-            let attacker_index = groups.iter()
-                .position(|g| (g.team, g.id) == att)
-                .unwrap();
+            let attacker_index =
+                groups.iter().position(|g| (g.team, g.id) == att).unwrap();
 
             let attacker = &groups[attacker_index];
 
@@ -373,18 +376,14 @@ fn run_fight(groups: &mut Vec<Group>) {
         }
     }
 
-    groups.retain(|g| {
-        g.units > 0
-    });
+    groups.retain(|g| g.units > 0);
 }
 
 fn sort_groups_for_target(groups: &mut Vec<Group>) {
     use std::cmp::Ordering;
     groups.sort_by(|a, b| {
         match a.effective_power().cmp(&b.effective_power()).reverse() {
-            Ordering::Equal => {
-                a.initiative.cmp(&b.initiative).reverse()
-            }
+            Ordering::Equal => a.initiative.cmp(&b.initiative).reverse(),
             other => other,
         }
     })
@@ -392,21 +391,25 @@ fn sort_groups_for_target(groups: &mut Vec<Group>) {
 
 fn sort_groups_for_attack(groups: &mut Vec<Group>) {
     use std::cmp::Ordering;
-    groups.sort_by(|a, b| {
-        a.initiative.cmp(&b.initiative).reverse()
-    })
+    groups.sort_by(|a, b| a.initiative.cmp(&b.initiative).reverse())
 }
 
-fn enemies_for<'a>(attacker: &'a Group, groups: &'a [Group]) -> impl Iterator<Item=&'a Group> {
+fn enemies_for<'a>(
+    attacker: &'a Group,
+    groups: &'a [Group],
+) -> impl Iterator<Item = &'a Group> {
     let team = attacker.team;
-    groups.iter()
-        .filter(move |g| g.team != team)
+    groups.iter().filter(move |g| g.team != team)
 }
 
-fn select_target(attacker: &Group, possible_enemies: &[&Group]) -> Option<(Team, i64)> {
+fn select_target(
+    attacker: &Group,
+    possible_enemies: &[&Group],
+) -> Option<(Team, i64)> {
     use std::cmp::Ordering;
 
-    let mut enemies: Vec<_> = possible_enemies.iter()
+    let mut enemies: Vec<_> = possible_enemies
+        .iter()
         .filter(|a| a.would_take_damage(attacker) > 0)
         .collect();
 
@@ -416,14 +419,13 @@ fn select_target(attacker: &Group, possible_enemies: &[&Group]) -> Option<(Team,
 
         match dmg_a.cmp(&dmg_b).reverse() {
             Ordering::Equal => {
-
                 match a.effective_power().cmp(&b.effective_power()).reverse() {
                     Ordering::Equal => {
                         a.initiative.cmp(&b.initiative).reverse()
-                    },
+                    }
                     other => other,
                 }
-            },
+            }
             other => other,
         }
     });
@@ -499,9 +501,9 @@ impl std::str::FromStr for Group {
             // (?mi)(\d+) units each with (\d+) hit points (\(.*\))*\s*with an attack that does (\d+) (\w+) damage at initiative (\d+)
             static ref RE: Regex = Regex::new(r"(?i)(\d+) units each with (\d+) hit points\s*(\(.*\))*\s*with an attack that does (\d+) (\w+) damage at initiative (\d+)").unwrap();
         }
-        let caps = RE.captures(s)
+        let caps = RE
+            .captures(s)
             .ok_or_else(|| CustomError(format!("Invalid capture")))?;
-
 
         // eprintln!("caps {:?}", caps);
         let units: i64 = aoc::get_value(&caps, 1)?;
@@ -509,31 +511,32 @@ impl std::str::FromStr for Group {
         let mut weak = Vec::new();
         let mut immune = Vec::new();
         if let Some(imm) = caps.get(3).map(|v| v.as_str().trim()) {
-            let values: Vec<&str> = imm.trim_matches(|p| p == '(' || p == ')' )
-                                    .split(';')
-                                    .map(|s| s.trim())
-                                    .collect();
+            let values: Vec<&str> = imm
+                .trim_matches(|p| p == '(' || p == ')')
+                .split(';')
+                .map(|s| s.trim())
+                .collect();
             // eprintln!("Imm {:?}", values);
 
             for line in values.iter() {
                 if line.starts_with("immune to ") {
-
-                    let tmp: std::result::Result<_, _> = line.replace("immune to ", "")
-                            .split(",")
-                            .map(|s| s.trim())
-                            .map(|s| s.parse::<DamageType>())
-                            .collect();
+                    let tmp: std::result::Result<_, _> = line
+                        .replace("immune to ", "")
+                        .split(",")
+                        .map(|s| s.trim())
+                        .map(|s| s.parse::<DamageType>())
+                        .collect();
 
                     let mut tmp = tmp?;
 
                     immune.append(&mut tmp);
-
                 } else if line.starts_with("weak to ") {
-                    let tmp: std::result::Result<_, _> = line.replace("weak to ", "")
-                            .split(",")
-                            .map(|s| s.trim())
-                            .map(|s| s.parse::<DamageType>())
-                            .collect();
+                    let tmp: std::result::Result<_, _> = line
+                        .replace("weak to ", "")
+                        .split(",")
+                        .map(|s| s.trim())
+                        .map(|s| s.parse::<DamageType>())
+                        .collect();
 
                     let mut tmp = tmp?;
 
@@ -565,7 +568,6 @@ enum Team {
     Infection,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 enum DamageType {
     Radiation,
@@ -588,7 +590,6 @@ impl std::str::FromStr for DamageType {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

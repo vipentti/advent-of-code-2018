@@ -1,9 +1,9 @@
 #![allow(dead_code)]
-use aoc::{Result, Vector2, CustomError, ToIndex};
+use aoc::{CustomError, Result, ToIndex, Vector2};
 
-use std::collections::{HashSet, HashMap, VecDeque};
-use regex::Regex;
 use lazy_static::lazy_static;
+use regex::Regex;
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use std::ops::{Index, IndexMut};
 
@@ -17,7 +17,6 @@ fn main() -> Result<()> {
 }
 
 fn part1(s: &str, minutes: usize) -> Result<usize> {
-
     let mut items = Vec::new();
 
     for line in s.lines() {
@@ -50,11 +49,9 @@ fn part1(s: &str, minutes: usize) -> Result<usize> {
 
     grid.display();
 
-
     let mut last_tick = None;
 
     for tick in 1..=minutes {
-
         if !grid.tick() {
             eprintln!("After {} minutes", tick);
             last_tick = Some(tick);
@@ -67,11 +64,7 @@ fn part1(s: &str, minutes: usize) -> Result<usize> {
     grid.display();
 
     if let Some(mut tick) = last_tick {
-        let position = grid.prev
-            .iter()
-            .position(|p| p == &grid.data)
-            ;
-
+        let position = grid.prev.iter().position(|p| p == &grid.data);
 
         if let Some(pos) = position {
             let cycle_len = grid.prev.len() - pos;
@@ -86,7 +79,6 @@ fn part1(s: &str, minutes: usize) -> Result<usize> {
             for _ in tick..minutes {
                 grid.tick();
             }
-
         }
 
         // advance iteration one cycle at a time as long as possible
@@ -101,7 +93,10 @@ fn part1(s: &str, minutes: usize) -> Result<usize> {
 
     let total = lumber_count * tree_count;
 
-    eprintln!("part1: trees {} lumber {} total = {}", tree_count, lumber_count, total);
+    eprintln!(
+        "part1: trees {} lumber {} total = {}",
+        tree_count, lumber_count, total
+    );
 
     Ok(0)
 }
@@ -115,7 +110,7 @@ fn part2(s: &str) -> Result<usize> {
 enum Acre {
     Open,
     Tree,
-    Lumber
+    Lumber,
 }
 
 impl Acre {
@@ -129,21 +124,23 @@ impl Acre {
 }
 
 impl Default for Acre {
-    fn default() -> Self { Acre::Open }
+    fn default() -> Self {
+        Acre::Open
+    }
 }
 
 fn adjacent(pt: Vector2) -> [Vector2; 8] {
-    [ pt.left()
-    , pt.left().up()
-    , pt.up()
-    , pt.up().right()
-    , pt.right()
-    , pt.right().down()
-    , pt.down()
-    , pt.down().left()
+    [
+        pt.left(),
+        pt.left().up(),
+        pt.up(),
+        pt.up().right(),
+        pt.right(),
+        pt.right().down(),
+        pt.down(),
+        pt.down().left(),
     ]
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 struct Grid {
@@ -159,8 +156,7 @@ impl Grid {
         let width = items[0].len();
         let height = items.len();
 
-        let data: Vec<_> = items.into_iter().flatten()
-            .collect();
+        let data: Vec<_> = items.into_iter().flatten().collect();
 
         Grid {
             width,
@@ -172,17 +168,11 @@ impl Grid {
     }
 
     fn tree_count(&self) -> usize {
-        self.data
-            .iter()
-            .filter(|&&p| p == Acre::Tree)
-            .count()
+        self.data.iter().filter(|&&p| p == Acre::Tree).count()
     }
 
     fn lumber_count(&self) -> usize {
-        self.data
-            .iter()
-            .filter(|&&p| p == Acre::Lumber)
-            .count()
+        self.data.iter().filter(|&&p| p == Acre::Lumber).count()
     }
 
     fn add_counts(&mut self) {
@@ -196,22 +186,19 @@ impl Grid {
 
         for y in 0..self.height {
             for x in 0..self.width {
-
                 let pt: Vector2 = (x, y).into();
 
                 let current = self[pt];
 
                 let adjacent = adjacent(pt);
 
-
                 match current {
                     Acre::Open => {
-
-                        let count_trees = adjacent.into_iter()
+                        let count_trees = adjacent
+                            .into_iter()
                             .filter_map(|p| self.get(*p))
                             .filter(|&&p| p == Acre::Tree)
                             .count();
-
 
                         if count_trees >= 3 {
                             // eprintln!("{} trees {}", pt, count_trees);
@@ -220,7 +207,8 @@ impl Grid {
                         }
                     }
                     Acre::Tree => {
-                        let count = adjacent.into_iter()
+                        let count = adjacent
+                            .into_iter()
                             .filter_map(|p| self.get(*p))
                             .filter(|&&p| p == Acre::Lumber)
                             .count();
@@ -231,11 +219,13 @@ impl Grid {
                         }
                     }
                     Acre::Lumber => {
-                        let count_trees = adjacent.into_iter()
+                        let count_trees = adjacent
+                            .into_iter()
                             .filter_map(|p| self.get(*p))
                             .filter(|&&p| p == Acre::Tree)
                             .count();
-                        let count_lumber = adjacent.into_iter()
+                        let count_lumber = adjacent
+                            .into_iter()
                             .filter_map(|p| self.get(*p))
                             .filter(|&&p| p == Acre::Lumber)
                             .count();
@@ -252,9 +242,7 @@ impl Grid {
             }
         }
 
-        let any_same = self.prev.iter()
-            .filter(|&p| p == &next_data)
-            .count();
+        let any_same = self.prev.iter().filter(|&p| p == &next_data).count();
 
         if any_same >= 1 {
             std::mem::replace(&mut self.data, next_data);

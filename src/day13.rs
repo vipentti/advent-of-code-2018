@@ -1,6 +1,5 @@
-use aoc::{Result};
+use aoc::Result;
 use std::collections::HashSet;
-
 
 fn main() -> Result<()> {
     let s = aoc::read_input_untrimmed()?;
@@ -109,7 +108,7 @@ impl Direction {
 enum Turn {
     Left,
     Straight,
-    Right
+    Right,
 }
 
 impl Turn {
@@ -137,9 +136,7 @@ pub struct Cart {
 }
 use std::cmp::Ordering;
 
-
 impl Cart {
-
     fn turn(&mut self) {
         let next_dir = self.direction.turn(self.next_turn);
         self.next_turn = self.next_turn.turn();
@@ -150,16 +147,16 @@ impl Cart {
         match self.direction {
             Direction::Left => {
                 self.location.x -= 1;
-            },
+            }
             Direction::Right => {
                 self.location.x += 1;
-            },
+            }
             Direction::Up => {
                 self.location.y -= 1;
-            },
+            }
             Direction::Down => {
                 self.location.y += 1;
-            },
+            }
         }
     }
 
@@ -167,9 +164,9 @@ impl Cart {
         match track {
             Track::Intersection => {
                 self.turn();
-            },
-            Track::StraightHorizontal => { },
-            Track::StraightVertical => { },
+            }
+            Track::StraightHorizontal => {}
+            Track::StraightVertical => {}
             Track::CurveLeft => {
                 let next_dir = match self.direction {
                     Direction::Left => Direction::Up,
@@ -179,7 +176,7 @@ impl Cart {
                 };
 
                 self.direction = next_dir;
-            },
+            }
             Track::CurveRight => {
                 let next_dir = match self.direction {
                     Direction::Left => Direction::Down,
@@ -189,12 +186,11 @@ impl Cart {
                 };
 
                 self.direction = next_dir;
-            },
-            Track::Empty => { },
+            }
+            Track::Empty => {}
         }
     }
 }
-
 
 impl PartialOrd for Cart {
     fn partial_cmp(&self, other: &Cart) -> Option<Ordering> {
@@ -208,7 +204,7 @@ impl Ord for Cart {
     }
 }
 
-impl Eq for Cart { }
+impl Eq for Cart {}
 
 impl PartialEq for Cart {
     fn eq(&self, other: &Cart) -> bool {
@@ -241,12 +237,12 @@ impl Default for Track {
 impl AsChar for Track {
     fn from_char(c: char) -> Option<Self> {
         match c {
-            '+'  => Some(Track::Intersection),
+            '+' => Some(Track::Intersection),
             '\\' => Some(Track::CurveLeft),
-            '/'  => Some(Track::CurveRight),
-            '-'  => Some(Track::StraightHorizontal),
-            '|'  => Some(Track::StraightVertical),
-            ' '  => Some(Track::Empty),
+            '/' => Some(Track::CurveRight),
+            '-' => Some(Track::StraightHorizontal),
+            '|' => Some(Track::StraightVertical),
+            ' ' => Some(Track::Empty),
             _ => None,
         }
     }
@@ -277,11 +273,7 @@ fn to_index(width: usize, v: (usize, usize)) -> usize {
 
 impl Grid {
     pub fn new(mut tracks: Vec<Vec<Track>>, mut carts: Vec<Cart>) -> Self {
-        let max_width = tracks.iter()
-            .map(|v| v.len())
-            .max()
-            .unwrap()
-            ;
+        let max_width = tracks.iter().map(|v| v.len()).max().unwrap();
 
         for t in tracks.iter_mut() {
             if t.len() < max_width {
@@ -347,7 +339,6 @@ impl Grid {
     }
 
     fn check_for_collisions(&mut self) -> Option<(i32, i32)> {
-
         let len = self.carts.len();
 
         let mut first = 0;
@@ -384,7 +375,6 @@ impl Grid {
 
             return Some(l.into());
         }
-
 
         None
     }
@@ -425,9 +415,8 @@ impl Grid {
 
         let carts = std::mem::replace(&mut self.carts, Vec::with_capacity(len));
 
-        self.carts.extend(carts.into_iter()
-            .filter(|v| !v.collision)
-        );
+        self.carts
+            .extend(carts.into_iter().filter(|v| !v.collision));
 
         self.carts.sort();
 
@@ -502,7 +491,6 @@ impl Grid {
 }
 
 fn read_grid(s: &str) -> Result<Grid> {
-
     eprintln!("{}", s);
 
     let mut line: i32 = 0;
@@ -518,11 +506,15 @@ fn read_grid(s: &str) -> Result<Grid> {
         match (Track::from_char(ch), Direction::from_char(ch)) {
             (Some(t), None) => {
                 track_row.push(t);
-            },
+            }
             (None, Some(d)) => {
                 match d {
-                    Direction::Left => track_row.push(Track::StraightHorizontal),
-                    Direction::Right => track_row.push(Track::StraightHorizontal),
+                    Direction::Left => {
+                        track_row.push(Track::StraightHorizontal)
+                    }
+                    Direction::Right => {
+                        track_row.push(Track::StraightHorizontal)
+                    }
                     Direction::Up => track_row.push(Track::StraightVertical),
                     Direction::Down => track_row.push(Track::StraightVertical),
                 }
@@ -532,7 +524,7 @@ fn read_grid(s: &str) -> Result<Grid> {
                     next_turn: Turn::Left,
                     collision: false,
                 });
-            },
+            }
             _ => match ch {
                 '\n' => {
                     line += 1;
@@ -540,11 +532,11 @@ fn read_grid(s: &str) -> Result<Grid> {
                     tracks.push(track_row);
                     track_row = Vec::new();
                     continue;
-                },
+                }
                 _ => {
                     unreachable!();
                 }
-            }
+            },
         }
 
         column += 1;
@@ -556,7 +548,6 @@ fn read_grid(s: &str) -> Result<Grid> {
 
     Ok(Grid::new(tracks, carts))
 }
-
 
 fn part1(s: &str) -> Result<(i32, i32)> {
     let mut grid = read_grid(s)?;
@@ -587,7 +578,6 @@ fn part1(s: &str) -> Result<(i32, i32)> {
     } else {
         Ok((0, 0))
     }
-
 }
 
 fn part2(s: &str) -> Result<(i32, i32)> {
@@ -619,7 +609,6 @@ fn part2(s: &str) -> Result<(i32, i32)> {
         Ok((0, 0))
     }
 }
-
 
 #[cfg(test)]
 mod tests {

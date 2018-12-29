@@ -1,9 +1,10 @@
-use aoc::{Result};
+use aoc::Result;
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
 
-    let nr_recipes = s.parse::<u32>()
+    let nr_recipes = s
+        .parse::<u32>()
         .map_err::<Box<std::num::ParseIntError>, _>(|e| e.into())?;
 
     part1(nr_recipes)?;
@@ -50,9 +51,8 @@ fn part1(nr_recipes: u32) -> Result<String> {
     let mut elf1: usize = 0;
     let mut elf2: usize = 1;
 
-    let mut idx =0 ;
+    let mut idx = 0;
     loop {
-
         if recipes.len() >= (nr_recipes as usize) + 10 || idx >= 1_000_000_000 {
             break;
         }
@@ -67,7 +67,8 @@ fn part1(nr_recipes: u32) -> Result<String> {
         idx += 1;
     }
 
-    let next_scores: String = recipes.iter()
+    let next_scores: String = recipes
+        .iter()
         .skip(nr_recipes as usize)
         .take(10)
         .map(|v| v.to_string())
@@ -79,9 +80,8 @@ fn part1(nr_recipes: u32) -> Result<String> {
 }
 
 fn part2(s: &str) -> Result<u32> {
-    let mut expected_digits: Vec<u32> = s.chars()
-        .filter_map(|c| c.to_digit(10))
-        .collect();
+    let mut expected_digits: Vec<u32> =
+        s.chars().filter_map(|c| c.to_digit(10)).collect();
 
     eprintln!("expected_digits {:?}", expected_digits);
 
@@ -94,12 +94,13 @@ fn part2(s: &str) -> Result<u32> {
     let mut elf1: usize = 0;
     let mut elf2: usize = 1;
 
-    let mut idx = 0 ;
+    let mut idx = 0;
 
     let mut skip = 0;
 
     'outer: loop {
-        let all_match = expected_digits.iter()
+        let all_match = expected_digits
+            .iter()
             .zip(recipes.iter().rev())
             .all(|(a, b)| a == b);
 
@@ -120,7 +121,8 @@ fn part2(s: &str) -> Result<u32> {
         // to check each added digit if they form the
         // expected sequence
         for skip_i in 0..new_digit_len {
-            let all_match = expected_digits.iter()
+            let all_match = expected_digits
+                .iter()
                 .zip(recipes.iter().rev().skip(skip_i))
                 .all(|(a, b)| a == b);
 
@@ -160,7 +162,7 @@ mod tests {
         assert_eq!(vec![1, 0], digits(10));
         assert_eq!(vec![1], digits(1));
         assert_eq!(vec![0], digits(0));
-        assert_eq!(vec![1,1,1], digits(111));
+        assert_eq!(vec![1, 1, 1], digits(111));
     }
 
     #[test]

@@ -1,10 +1,9 @@
-
 #![allow(dead_code)]
-use aoc::{Result, CustomError, Vector2, ToIndex};
+use aoc::{CustomError, Result, ToIndex, Vector2};
 
 use std::ops::{Index, IndexMut};
 
-use std::collections::{VecDeque, BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -38,10 +37,7 @@ struct Parser {
 
 impl Parser {
     pub fn new(input: Vec<char>) -> Self {
-        Parser {
-            input,
-            current: 0,
-        }
+        Parser { input, current: 0 }
     }
 
     fn parse_all(&mut self) -> Result<PathRegex> {
@@ -65,12 +61,24 @@ impl Parser {
                 self.eat(')')?;
 
                 Ok(inner)
-            },
+            }
 
-            'N' => { self.eat('N')?; Ok(PathRegex::Step(Dir::North)) }
-            'E' => { self.eat('E')?; Ok(PathRegex::Step(Dir::East)) }
-            'S' => { self.eat('S')?; Ok(PathRegex::Step(Dir::South)) }
-            'W' => { self.eat('W')?; Ok(PathRegex::Step(Dir::West)) }
+            'N' => {
+                self.eat('N')?;
+                Ok(PathRegex::Step(Dir::North))
+            }
+            'E' => {
+                self.eat('E')?;
+                Ok(PathRegex::Step(Dir::East))
+            }
+            'S' => {
+                self.eat('S')?;
+                Ok(PathRegex::Step(Dir::South))
+            }
+            'W' => {
+                self.eat('W')?;
+                Ok(PathRegex::Step(Dir::West))
+            }
 
             _ => unreachable!(),
         }
@@ -134,7 +142,13 @@ impl Parser {
             self.current += 1;
             return Ok(());
         }
-        Err(CustomError(format!("Invalid character {} at {} expected {}", self.peek(), self.current, c)).into())
+        Err(CustomError(format!(
+            "Invalid character {} at {} expected {}",
+            self.peek(),
+            self.current,
+            c
+        ))
+        .into())
     }
 }
 
@@ -160,15 +174,16 @@ impl Tile {
 }
 
 impl Default for Tile {
-    fn default() -> Self { Tile::Wall }
+    fn default() -> Self {
+        Tile::Wall
+    }
 }
 
 type TileMap = BTreeMap<Vector2, Tile>;
 
 fn part1(s: &str) -> Result<usize> {
-    let path_chars: Vec<char> = s.chars()
-        .filter(|&c| c != '^' && c != '$')
-        .collect();
+    let path_chars: Vec<char> =
+        s.chars().filter(|&c| c != '^' && c != '$').collect();
 
     // eprintln!("C {:?}", path_chars);
 
@@ -223,7 +238,7 @@ fn part1(s: &str) -> Result<usize> {
     let s = start - (min_x, min_y);
     eprintln!("s {}", s);
 
-    if let Some(dist) =  grid.find_path(s) {
+    if let Some(dist) = grid.find_path(s) {
         eprintln!("part1 {}", dist);
         return Ok(dist);
     }
@@ -243,7 +258,7 @@ impl Grid {
         Grid {
             data: vec![Default::default(); width * height],
             width,
-            height
+            height,
         }
     }
 
@@ -270,7 +285,8 @@ impl Grid {
 
                 if !distances.contains_key(nbr) {
                     q.push_back(*nbr);
-                    distances.insert(*nbr, 1 + distances.get(&current).unwrap());
+                    distances
+                        .insert(*nbr, 1 + distances.get(&current).unwrap());
                     if self.is_door(*nbr) {
                         doors.insert(*nbr, 1 + doors.get(&current).unwrap());
                     } else {
@@ -295,7 +311,8 @@ impl Grid {
 
         // eprintln!("{:?}", distances);
 
-        let rooms_through_1000_doors: HashMap<_, _> = doors.iter()
+        let rooms_through_1000_doors: HashMap<_, _> = doors
+            .iter()
             .filter(|(k, _)| self.is_open(**k))
             .filter(|(_, v)| **v >= 1000)
             .collect();
@@ -303,9 +320,7 @@ impl Grid {
 
         eprintln!("part2 {}", rooms_through_1000_doors.len());
 
-        let max = distances.iter()
-            .max_by_key(|(_, v)| *v)
-            ;
+        let max = distances.iter().max_by_key(|(_, v)| *v);
         if let Some(m) = max {
             let d = doors.get(&m.0);
             eprintln!("Max {:?} {:?}", m, d);
@@ -393,14 +408,15 @@ impl<T: ToIndex> IndexMut<T> for Grid {
 }
 
 fn adjacent(pt: Vector2) -> [Vector2; 8] {
-    [ pt.left()
-    , pt.left().up()
-    , pt.up()
-    , pt.up().right()
-    , pt.right()
-    , pt.right().down()
-    , pt.down()
-    , pt.down().left()
+    [
+        pt.left(),
+        pt.left().up(),
+        pt.up(),
+        pt.up().right(),
+        pt.right(),
+        pt.right().down(),
+        pt.down(),
+        pt.down().left(),
     ]
 }
 
@@ -413,7 +429,12 @@ fn insert_adjacent(c: Vector2, tile: Tile, chars: &mut TileMap) {
     chars.insert(c, tile);
 }
 
-fn traverse(path: &PathRegex, current: &mut Vector2, coords: &mut Vec<Vector2>, chars: &mut TileMap) {
+fn traverse(
+    path: &PathRegex,
+    current: &mut Vector2,
+    coords: &mut Vec<Vector2>,
+    chars: &mut TileMap,
+) {
     use self::PathRegex::*;
 
     // eprintln!("Step {:?} {}", path, current);
@@ -423,38 +444,37 @@ fn traverse(path: &PathRegex, current: &mut Vector2, coords: &mut Vec<Vector2>, 
     // }
 
     match path {
-        Blank => { }
+        Blank => {}
         Step(Dir::North) => {
             *current = current.up();
             insert_adjacent(*current, Tile::DoorUp, chars);
             *current = current.up();
             insert_adjacent(*current, Tile::Open, chars);
             coords.push(*current);
-        },
+        }
         Step(Dir::East) => {
             *current = current.right();
             insert_adjacent(*current, Tile::DoorSide, chars);
             *current = current.right();
             insert_adjacent(*current, Tile::Open, chars);
             coords.push(*current);
-        },
+        }
         Step(Dir::West) => {
             *current = current.left();
             insert_adjacent(*current, Tile::DoorSide, chars);
             *current = current.left();
             insert_adjacent(*current, Tile::Open, chars);
             coords.push(*current);
-        },
+        }
         Step(Dir::South) => {
             *current = current.down();
             insert_adjacent(*current, Tile::DoorUp, chars);
             *current = current.down();
             insert_adjacent(*current, Tile::Open, chars);
             coords.push(*current);
-        },
+        }
 
         Branch(left, right) => {
-
             let mut r = *current;
             let mut l = *current;
 
@@ -470,7 +490,7 @@ fn traverse(path: &PathRegex, current: &mut Vector2, coords: &mut Vec<Vector2>, 
                 traverse(pt, &mut p, coords, chars);
                 c = p;
             }
-        },
+        }
     }
 }
 
@@ -530,7 +550,9 @@ impl Dir {
 }
 
 impl Default for Dir {
-    fn default() -> Self { Dir::North }
+    fn default() -> Self {
+        Dir::North
+    }
 }
 
 #[cfg(test)]
@@ -539,17 +561,18 @@ mod tests {
 
     #[test]
     fn part1_example_input() {
-
-//         assert_eq!(3, part1(r"
-// #####
-// #.|.#
-// #-###
-// #.|X#
-// #####
-//         ".trim()).unwrap());
+        //         assert_eq!(3, part1(r"
+        // #####
+        // #.|.#
+        // #-###
+        // #.|X#
+        // #####
+        //         ".trim()).unwrap());
         assert_eq!(3, part1(r"^WNE$".trim()).unwrap());
-        assert_eq!(18, part1("^ENNWSWW(NEWS|)SSSEEN(WNSE|)EE(SWEN|)NNN$").unwrap());
+        assert_eq!(
+            18,
+            part1("^ENNWSWW(NEWS|)SSSEEN(WNSE|)EE(SWEN|)NNN$").unwrap()
+        );
         assert_eq!(10, part1("^ENWWW(NEEE|SSE(EE|N))$").unwrap());
-
     }
 }
