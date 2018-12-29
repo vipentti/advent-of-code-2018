@@ -145,6 +145,7 @@ impl Graph {
         }
     }
 
+    #[allow(dead_code)]
     fn display(&self) {
         let mut buf = String::new();
         buf.push('\n');

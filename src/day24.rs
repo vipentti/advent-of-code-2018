@@ -212,63 +212,55 @@ fn part2(s: &str) -> Result<i64> {
 }
 
 fn find_max_boost(
-    original_groups: &Vec<Group>,
+    original_groups: &[Group],
     step: i64,
     min: i64,
     max: i64,
 ) -> Option<i64> {
     let mut current_boost: i64 = max;
-    let mut max_boost = i64::max_value();
     let mut prev = false;
 
     loop {
         if current_boost < min {
             return None;
         }
-        let mut groups = original_groups.clone();
+        let mut groups = original_groups.to_owned();
 
         let c = run_with_boost(&mut groups, current_boost);
 
         if prev && !c {
-            max_boost = current_boost + step;
-            break;
+            return Some(current_boost + step);
         } else {
             current_boost -= step;
             prev = c;
         }
     }
-
-    Some(max_boost)
 }
 
 fn find_min_boost(
-    original_groups: &Vec<Group>,
+    original_groups: &[Group],
     step: i64,
     min: i64,
     max: i64,
 ) -> Option<i64> {
     let mut current_boost: i64 = min;
-    let mut min_boost = i64::max_value();
     let mut prev = false;
 
     loop {
         if current_boost > max {
             return None;
         }
-        let mut groups = original_groups.clone();
+        let mut groups = original_groups.to_owned();
 
         let c = run_with_boost(&mut groups, current_boost);
 
         if !prev && c {
-            min_boost = current_boost - step;
-            break;
+            return Some(current_boost - step);
         } else {
             current_boost += step;
             prev = c;
         }
     }
-
-    Some(min_boost)
 }
 
 fn count_units(groups: &[Group]) -> i64 {
@@ -390,7 +382,6 @@ fn sort_groups_for_target(groups: &mut Vec<Group>) {
 }
 
 fn sort_groups_for_attack(groups: &mut Vec<Group>) {
-    use std::cmp::Ordering;
     groups.sort_by(|a, b| a.initiative.cmp(&b.initiative).reverse())
 }
 
@@ -503,7 +494,7 @@ impl std::str::FromStr for Group {
         }
         let caps = RE
             .captures(s)
-            .ok_or_else(|| CustomError(format!("Invalid capture")))?;
+            .ok_or_else(|| CustomError("Invalid capture".to_string()))?;
 
         // eprintln!("caps {:?}", caps);
         let units: i64 = aoc::get_value(&caps, 1)?;
@@ -522,7 +513,7 @@ impl std::str::FromStr for Group {
                 if line.starts_with("immune to ") {
                     let tmp: std::result::Result<_, _> = line
                         .replace("immune to ", "")
-                        .split(",")
+                        .split(',')
                         .map(|s| s.trim())
                         .map(|s| s.parse::<DamageType>())
                         .collect();
@@ -533,7 +524,7 @@ impl std::str::FromStr for Group {
                 } else if line.starts_with("weak to ") {
                     let tmp: std::result::Result<_, _> = line
                         .replace("weak to ", "")
-                        .split(",")
+                        .split(',')
                         .map(|s| s.trim())
                         .map(|s| s.parse::<DamageType>())
                         .collect();

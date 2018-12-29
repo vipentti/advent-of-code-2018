@@ -32,11 +32,7 @@ fn part1(s: &str) -> Result<i32> {
 
     assert!(ips.len() <= 1);
 
-    let ip_reg = ips
-        .first()
-        .unwrap()
-        .parse::<usize>()
-        .map_err(|e| Box::new(e))?;
+    let ip_reg = ips.first().unwrap().parse::<usize>().map_err(Box::new)?;
 
     for line in s.lines().filter(|s| !s.starts_with('#')) {
         let inst = line.parse::<Instruction>()?;
@@ -72,11 +68,7 @@ fn part2(s: &str) -> Result<i32> {
 
     assert!(ips.len() <= 1);
 
-    let ip_reg = ips
-        .first()
-        .unwrap()
-        .parse::<usize>()
-        .map_err(|e| Box::new(e))?;
+    let ip_reg = ips.first().unwrap().parse::<usize>().map_err(Box::new)?;
 
     for line in s.lines().filter(|s| !s.starts_with('#')) {
         let inst = line.parse::<Instruction>()?;
@@ -244,7 +236,6 @@ impl Instruction {
     }
 
     fn is_comparison(&self) -> bool {
-        use self::Instruction::*;
         match self {
             Instruction::Gtir(_, _, _) => true,
             Instruction::Gtri(_, _, _) => true,
@@ -475,73 +466,10 @@ impl Machine {
         Ok(())
     }
 
-    fn run_opt(&mut self) -> Result<()> {
-        let wait_reg = Reg(5);
-        let expected = Reg(3);
-        let value_reg = Reg(0);
-        let add_reg = Reg(0);
-        eprintln!();
-        let mut c = 0usize;
-        let mut prev = 0;
-        let mut prev1 = 0;
-        let mut prev4 = 0;
-        /*
-         *
-         * If R4 == R3 {
-         *    R0 = R0 + R1
-         *    R5 = R5 + 1
-         * }
-         *
-         * If R5 > R3 {
-         * }
-         */
-        loop {
-            self.store_ip();
-            let ip = self.get_ip();
-            if ip > self.code.len() - 1 {
-                break;
-            }
-            let inst = self.code[ip];
-
-            // eprintln!("Before {:?}", self.registers);
-
-            // eprintln!("Executing {} -> {:?}", ip, inst);
-            let before = self.registers.clone();
-            self.execute(inst)?;
-            self.move_ip();
-
-            // if self.registers[Reg(0)] > 2000 && self.registers[Reg(5)] > 980 {
-            if self.registers[Reg(0)] != prev
-                || prev1 != self.registers[Reg(1)]
-                || self.registers[Reg(1)] == self.registers[Reg(5)]
-                || self.registers[Reg(4)] == self.registers[Reg(3)]
-                || (prev4 == 0 && self.registers[Reg(4)] == 1)
-            {
-                prev = self.registers[Reg(0)];
-                prev1 = self.registers[Reg(1)];
-                c += 1;
-            }
-            eprintln!(
-                "{: <3}: {:?} {:?} {:?}",
-                ip, before, inst, self.registers
-            );
-
-            prev4 = self.registers[Reg(4)];
-
-            // eprintln!("After {:?}", self.registers);
-            // eprintln!();
-        }
-        Ok(())
-    }
-
     fn run(&mut self) -> Result<()> {
         eprintln!();
-        let mut c = 0usize;
         let mut prev = 0;
         let mut prev1 = 0;
-        let mut prev4 = 0;
-
-        let mut previ = Instruction::addr(0, 0, 0);
 
         let stderr = io::stderr();
         let mut handle = stderr.lock();
@@ -556,32 +484,25 @@ impl Machine {
             // eprintln!("Before {:?}", self.registers);
 
             // eprintln!("Executing {} -> {:?}", ip, inst);
-            let before = self.registers.clone();
+            let before = self.registers;
             self.execute(inst)?;
             self.move_ip();
 
-            // if self.registers[Reg(0)] > 2000 && self.registers[Reg(5)] > 980 {
             if self.registers[Reg(0)] != prev
                 || prev1 != self.registers[Reg(1)]
                 || self.registers[Reg(1)] == self.registers[Reg(5)]
                 || self.registers[Reg(4)] == self.registers[Reg(3)]
-                || (prev4 == 0 && self.registers[Reg(4)] == 1)
                 || (ip == 15)
             {
                 prev = self.registers[Reg(0)];
                 prev1 = self.registers[Reg(1)];
-                // writeln!(handle, "{:?} {:?} {:?}", before, inst, self.registers)?;
-                c += 1;
             }
+
             writeln!(
                 handle,
                 "{: <3}: {:?} {:?} {:?}",
                 ip, before, inst, self.registers
-            );
-            // eprintln!("{:?} {:?} {:?}", before, inst, self.registers);
-
-            // eprintln!("After {:?}", self.registers);
-            // eprintln!();
+            )?;
         }
         Ok(())
     }

@@ -205,9 +205,9 @@ fn part1(s: &str) -> Result<usize> {
 
     // eprintln!("Coords {:?}", coords);
 
-    let mut points: Vec<_> = tilemap.keys().cloned().collect();
+    let points: Vec<_> = tilemap.keys().cloned().collect();
 
-    let (mut min_x, mut min_y, mut max_x, mut max_y) = get_size_from(&points)?;
+    let (min_x, min_y, max_x, max_y) = get_size_from(&points)?;
     // min_x -= 1;
     // min_y -= 1;
     // max_x += 1;
@@ -285,19 +285,18 @@ impl Grid {
 
                 if !distances.contains_key(nbr) {
                     q.push_back(*nbr);
-                    distances
-                        .insert(*nbr, 1 + distances.get(&current).unwrap());
+                    distances.insert(*nbr, 1 + distances[&current]);
                     if self.is_door(*nbr) {
-                        doors.insert(*nbr, 1 + doors.get(&current).unwrap());
+                        doors.insert(*nbr, 1 + doors[&current]);
                     } else {
-                        doors.insert(*nbr, *doors.get(&current).unwrap());
+                        doors.insert(*nbr, *&doors[&current]);
                     }
                     came_from.insert(*nbr, current);
                 } else {
-                    let old_door = *doors.get(nbr).unwrap();
-                    let current_doors = *doors.get(&current).unwrap();
-                    let old_dist = *distances.get(nbr).unwrap();
-                    let cur_dist = *distances.get(&current).unwrap();
+                    let old_door = *&doors[&nbr];
+                    let current_doors = *&doors[&current];
+                    let old_dist = *&distances[&nbr];
+                    let cur_dist = *&distances[&current];
 
                     if current_doors + 1 > old_door && cur_dist + 1 < old_dist {
                         eprintln!("Updating!! {}", nbr);

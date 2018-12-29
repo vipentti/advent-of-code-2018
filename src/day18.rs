@@ -1,11 +1,6 @@
-#![allow(dead_code)]
 use aoc::{CustomError, Result, ToIndex, Vector2};
 
-use lazy_static::lazy_static;
-use regex::Regex;
-use std::collections::{HashMap, HashSet, VecDeque};
-
-use std::ops::{Index, IndexMut};
+use std::ops::Index;
 
 fn main() -> Result<()> {
     let s = aoc::read_input()?;
@@ -175,12 +170,6 @@ impl Grid {
         self.data.iter().filter(|&&p| p == Acre::Lumber).count()
     }
 
-    fn add_counts(&mut self) {
-        let trees = self.tree_count();
-        let lumber = self.lumber_count();
-        self.counts.push((trees, lumber));
-    }
-
     fn tick(&mut self) -> bool {
         let mut next_data = self.data.clone();
 
@@ -300,13 +289,6 @@ impl<T: ToIndex> Index<T> for Grid {
         &self.data[i]
     }
 }
-
-// impl<T: ToIndex> IndexMut<T> for Grid {
-//     fn index_mut(&mut self, index: T) -> &mut Acre {
-//         let i = index.to_index(self.width);
-//         &mut self.data[i]
-//     }
-// }
 
 #[cfg(test)]
 mod tests {

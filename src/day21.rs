@@ -34,11 +34,7 @@ fn part1(s: &str) -> Result<Number> {
 
     assert!(ips.len() <= 1);
 
-    let ip_reg = ips
-        .first()
-        .unwrap()
-        .parse::<usize>()
-        .map_err(|e| Box::new(e))?;
+    let ip_reg = ips.first().unwrap().parse::<usize>().map_err(Box::new)?;
 
     for line in s.lines().filter(|s| !s.starts_with('#')) {
         let inst = line.parse::<Instruction>()?;
@@ -158,8 +154,8 @@ impl fmt::Debug for Instruction {
             Instruction::Bori(a, b, c) => {
                 write!(f, "bori {:?} {:?} {:?}", a, b, c)
             }
-            Instruction::Setr(a, b, c) => write!(f, "setr {:?} _  {:?}", a, c),
-            Instruction::Seti(a, b, c) => write!(f, "seti {:?} _  {:?}", a, c),
+            Instruction::Setr(a, _b, c) => write!(f, "setr {:?} _  {:?}", a, c),
+            Instruction::Seti(a, _b, c) => write!(f, "seti {:?} _  {:?}", a, c),
             Instruction::Gtir(a, b, c) => {
                 write!(f, "gtir {:?} {:?} {:?}", a, b, c)
             }
@@ -209,8 +205,8 @@ impl fmt::Display for Instruction {
             Instruction::Bori(a, b, c) => {
                 write!(f, "bori {:?} {:?} {:?}", a, b, c)
             }
-            Instruction::Setr(a, b, c) => write!(f, "setr {:?} _  {:?}", a, c),
-            Instruction::Seti(a, b, c) => write!(f, "seti {:?} _  {:?}", a, c),
+            Instruction::Setr(a, _b, c) => write!(f, "setr {:?} _  {:?}", a, c),
+            Instruction::Seti(a, _b, c) => write!(f, "seti {:?} _  {:?}", a, c),
             Instruction::Gtir(a, b, c) => {
                 write!(f, "gtir {:?} {:?} {:?}", a, b, c)
             }
@@ -602,11 +598,6 @@ impl Machine {
     fn run(&mut self) -> Result<()> {
         eprintln!();
         let mut c = 0usize;
-        let mut prev = 0;
-        let mut prev1 = 0;
-        let mut prev4 = 0;
-
-        let mut previ = Instruction::addr(0, 0, 0);
 
         let stderr = io::stderr();
         let mut handle = stderr.lock();
@@ -624,36 +615,12 @@ impl Machine {
             // eprintln!("Before {:?}", self.registers);
 
             // eprintln!("Executing {} -> {:?}", ip, inst);
-            let before = self.registers.clone();
+            let _before = self.registers;
             self.execute(inst)?;
             self.move_ip();
 
-            // if self.registers[Reg(0)] > 2000 && self.registers[Reg(5)] > 980 {
-            /*
-            if self.registers[Reg(0)] != prev || prev1 != self.registers[Reg(1)]
-                || self.registers[Reg(1)] == self.registers[Reg(5)]
-                || self.registers[Reg(4)] == self.registers[Reg(3)]
-                || (prev4 == 0 && self.registers[Reg(4)] == 1)
-                || (ip == 15)
-                {
-                prev = self.registers[Reg(0)];
-                prev1 = self.registers[Reg(1)];
-                // writeln!(handle, "{:?} {:?} {:?}", before, inst, self.registers)?;
-                c += 1;
-            }
-            */
-
-            if ip == 28
-                || ip == 10
-                || ip == 13
-                || prev1 != self.registers[Reg(1)]
-            {
-                prev1 = self.registers[Reg(1)];
-                // writeln!(handle, "{: <3}: {:?} {:?} {:?}", ip, before, inst, self.registers)?;
-            }
-
             if ip == 13 {
-                if self.registers[Reg(1)] == 2525738 {
+                if self.registers[Reg(1)] == 2_525_738 {
                     writeln!(handle, "Loop {:?}", self.registers[Reg(1)])?;
                     writeln!(handle, "{:?}", set)?;
                 }

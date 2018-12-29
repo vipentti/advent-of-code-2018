@@ -23,7 +23,7 @@ fn part1(s: &str) -> Result<usize> {
             depth = input.parse::<i32>()?;
         } else if ind == 1 {
             let input = line.replace("target: ", "");
-            let parts: Vec<&str> = input.split(",").map(|s| s.trim()).collect();
+            let parts: Vec<&str> = input.split(',').map(|s| s.trim()).collect();
 
             target_x = parts[0].parse::<i32>()?;
             target_y = parts[1].parse::<i32>()?;
@@ -56,7 +56,7 @@ fn part2(s: &str) -> Result<usize> {
             depth = input.parse::<i32>()?;
         } else if ind == 1 {
             let input = line.replace("target: ", "");
-            let parts: Vec<&str> = input.split(",").map(|s| s.trim()).collect();
+            let parts: Vec<&str> = input.split(',').map(|s| s.trim()).collect();
 
             target_x = parts[0].parse::<i32>()?;
             target_y = parts[1].parse::<i32>()?;
@@ -205,7 +205,7 @@ impl Grid {
         !self.next_gear(gear, from, to).is_empty()
     }
 
-    fn heuristic(&self, gear: Gear, from: Vector2, to: Vector2) -> usize {
+    fn heuristic(&self, _gear: Gear, from: Vector2, to: Vector2) -> usize {
         manhattan_distance(&from, &to)
     }
 
@@ -231,7 +231,7 @@ impl Grid {
         }
     }
 
-    fn next_gear(&self, gear: Gear, from: Vector2, to: Vector2) -> Vec<Gear> {
+    fn next_gear(&self, _gear: Gear, from: Vector2, to: Vector2) -> Vec<Gear> {
         let mut gears = Vec::new();
 
         for g in &[Gear::Torch, Gear::Climbing, Gear::Neither] {

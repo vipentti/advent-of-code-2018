@@ -587,7 +587,7 @@ fn part2(s: &str) -> Result<(i32, i32)> {
 
     let mut tick = 0;
 
-    let mut res: Option<(i32, i32)> = loop {
+    let res: Option<(i32, i32)> = loop {
         if let Some(pos) = grid.tick_part2() {
             eprintln!("{} -> {:?}", tick, pos);
             break Some(pos);

@@ -3,7 +3,7 @@ use aoc::{CustomError, Result, ToIndex, Vector2};
 
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 
 use std::ops::{Index, IndexMut};
 
@@ -129,15 +129,15 @@ impl Grid {
     }
 
     fn get_copy<T: ToIndex>(&self, idx: T) -> Option<Tile> {
-        self.get(idx).map(|p| *p)
+        self.get(idx).cloned()
     }
 
     fn get_copy_or_invalid<T: ToIndex>(&self, idx: T) -> Tile {
-        self.get(idx).map(|p| *p).unwrap_or(Tile::Invalid)
+        self.get(idx).cloned().unwrap_or(Tile::Invalid)
     }
 
     fn get_i<T: ToIndex>(&self, idx: T) -> Tile {
-        self.get(idx).map(|p| *p).unwrap_or(Tile::Invalid)
+        self.get(idx).cloned().unwrap_or(Tile::Invalid)
     }
 
     /// [up, right, down, left]
@@ -356,7 +356,6 @@ fn run_stream(spring: Vector2, grid: &mut Grid) -> HashMap<Vector2, Tile> {
                     q.push_back((max_pos, Direction::Down));
                 }
             }
-            _ => {}
         }
     }
 
@@ -370,12 +369,9 @@ fn find_walls(v: Vector2, grid: &Grid, floor: Option<Range>) -> Option<Range> {
         return None;
     }
 
-    if floor.is_none() {
-        return None;
-    }
     // eprintln!("Here2 {} {:?} {:?}", v, grid.get(v), floor);
 
-    let floor = floor.unwrap();
+    let floor = floor?;
 
     let mut min_pos = v;
 
@@ -486,7 +482,7 @@ fn first_left(start: Vector2, grid: &Grid) -> Option<(Tile, Vector2)> {
         return None;
     }
 
-    for x in (0..=(start.x - 1)).rev() {
+    for x in (0..start.x).rev() {
         let c: Vector2 = (x, start.y).into();
         if let Some(Tile::Sand) = grid.get(c) {
             return Some((Tile::Sand, c));
@@ -607,9 +603,8 @@ fn read_clay_locations(s: &str) -> Result<Vec<Vector2>> {
             let name = caps.get(1).map_or("", |m| m.as_str());
             let range_start = caps.get(2).map_or("", |m| m.as_str());
             if let Some(end) = caps.get(3).map(|m| m.as_str()) {
-                let start =
-                    range_start.parse::<i32>().map_err(|e| Box::new(e))?;
-                let end = end.parse::<i32>().map_err(|e| Box::new(e))?;
+                let start = range_start.parse::<i32>().map_err(Box::new)?;
+                let end = end.parse::<i32>().map_err(Box::new)?;
                 match name {
                     "x" => {
                         x_values.extend(start..=end);
@@ -626,16 +621,12 @@ fn read_clay_locations(s: &str) -> Result<Vec<Vector2>> {
             } else {
                 match name {
                     "x" => {
-                        let x = range_start
-                            .parse::<i32>()
-                            .map_err(|e| Box::new(e))?;
+                        let x = range_start.parse::<i32>().map_err(Box::new)?;
 
                         x_values.push(x);
                     }
                     "y" => {
-                        let y = range_start
-                            .parse::<i32>()
-                            .map_err(|e| Box::new(e))?;
+                        let y = range_start.parse::<i32>().map_err(Box::new)?;
 
                         y_values.push(y);
                     }

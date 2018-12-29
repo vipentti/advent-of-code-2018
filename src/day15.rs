@@ -848,7 +848,7 @@ impl World {
         let new_pos = *path.first().unwrap();
 
         let free = {
-            if let Some(_) = self.position_components.get(entity) {
+            if self.position_components.get(entity).is_some() {
                 self.is_free(new_pos)
             } else {
                 false
@@ -911,7 +911,7 @@ impl World {
             pos.around()
                 .into_iter()
                 .filter(|p| self.is_free(**p))
-                .map(|p| *p)
+                .cloned()
                 .collect()
         } else {
             vec![]
@@ -970,7 +970,7 @@ impl World {
             .filter(|&e| self.type_components.get(*e) == Some(&enemy_type))
             .filter(|&e| self.position_components.get(*e).is_some())
             .filter(|&e| self.health_components.get(*e).is_some())
-            .map(|e| *e)
+            .cloned()
             .filter_map(|e| {
                 let pos = self.position_components.get(e).unwrap();
                 let dist = manhattan_distance(my_pos, pos);
